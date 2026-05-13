@@ -38,6 +38,8 @@ def run_test_menu():
         print("[8] Test take note")
         print("[9] Test screenshot")
         print("[10] Test joke")
+        print("[11] Test memory (remember name)")
+        print("[12] Test memory (show/clear)")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -60,6 +62,14 @@ def run_test_menu():
             notes.take_note(note_text)
         elif choice == '9': screenshot.take_screenshot()
         elif choice == '10': utilities.tell_joke()
+        elif choice == '11': 
+            name = input("Enter your name to remember: ")
+            handle_command(f"remember my name is {name}", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '12':
+            handle_command("show memory", test_mode_active=True, takecommand_func=takecommand)
+            confirm = input("Clear memory? (y/n): ")
+            if confirm.lower() == 'y':
+                handle_command("clear memory", test_mode_active=True, takecommand_func=takecommand)
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:

@@ -23,6 +23,11 @@ MUSIC_DIR = os.getenv("NOVA_MUSIC_DIR") or os.path.expanduser("~\\Music")
 NOTES_DIR = os.getenv("NOVA_NOTES_DIR") or os.path.join(PROJECT_ROOT, "notes")
 SCREENSHOT_DIR = os.getenv("NOVA_SCREENSHOT_DIR") or os.path.join(PROJECT_ROOT, "screenshots")
 
+# --- Memory Settings ---
+MEMORY_DB_PATH = os.path.join(DATA_DIR, "nova_memory.db")
+MEMORY_ENABLED = os.getenv("NOVA_MEMORY_ENABLED", "true").lower() == "true"
+MEMORY_MAX_RECENT = int(os.getenv("NOVA_MEMORY_MAX_RECENT", "10"))
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()

@@ -19,6 +19,12 @@ notes/
 screenshots/
 screenshot.png
 
+# Memory & Databases
+*.db
+*.sqlite
+*.sqlite3
+data/nova_memory.db
+
 # IDEs
 .vscode/
 .idea/

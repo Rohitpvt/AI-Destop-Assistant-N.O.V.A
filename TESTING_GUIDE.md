@@ -67,5 +67,9 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - Logs are stored in: `logs/nova.log`
 - Rotating logs are enabled (keeps last 3 backups).
 
+### Memory Storage
+- Interaction history and preferences are stored in: `data/nova_memory.db`
+- You can manage memory using commands like `show memory` and `clear memory`.
+
 ### Data Location
 - Assistant identity and persistent data are stored in: `data/`

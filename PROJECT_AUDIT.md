@@ -101,6 +101,7 @@ NOVA is currently in a **transitional state**. Phase 1 (Clean Command Router) an
 - [x] Phase 1: Clean command router (extracted to `core/router.py`)
 - [x] Phase 2: Separate features into modules (extracted to `features/`)
 - [x] Phase 3: Improve config and logging (Environment variables, rotating logs)
+- [x] Phase 4: Long-Term Memory (SQLite interaction history and preferences)
 
 ---
 *Audit performed on: 2026-05-14*
