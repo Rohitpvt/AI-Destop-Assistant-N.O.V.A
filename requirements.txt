@@ -7,6 +7,7 @@ standard-aifc  # Required for Python 3.13+ compatibility
 audioop-lts    # Required for Python 3.13+ compatibility
 Pillow         # Required for screenshot functionality
 python-dotenv  # For managing environment variables
+openai         # For LLM-based intent classification (Phase 5)
 
 # NOTE: PyAudio is required for microphone support.
 # If you encounter errors on Windows, download the appropriate .whl file from:

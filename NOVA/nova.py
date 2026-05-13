@@ -12,6 +12,7 @@ from core.logger import log_event, log_info
 from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
+from ai import llm_client, intent_classifier
 from features import utilities, apps, search, music, notes, screenshot
 
 # Import config
@@ -40,6 +41,8 @@ def run_test_menu():
         print("[10] Test joke")
         print("[11] Test memory (remember name)")
         print("[12] Test memory (show/clear)")
+        print("[13] Test AI connection")
+        print("[14] Test AI classification")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -70,6 +73,25 @@ def run_test_menu():
             confirm = input("Clear memory? (y/n): ")
             if confirm.lower() == 'y':
                 handle_command("clear memory", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '13':
+            if config.has_llm_credentials():
+                print(f"Checking connection to {config.NVIDIA_MODEL}...")
+                resp = llm_client.call_llm([{"role": "user", "content": "Say 'Connection Successful'"}])
+                if resp:
+                    print(f"Result: {resp}")
+                else:
+                    print("Connection Failed.")
+            else:
+                print("AI is disabled or NVIDIA_API_KEY is missing in .env")
+        elif choice == '14':
+            if config.has_llm_credentials():
+                cmd = input("Enter command to classify: ")
+                print("Classifying...")
+                result = intent_classifier.classify_intent_with_llm(cmd)
+                import json
+                print(json.dumps(result, indent=2))
+            else:
+                print("AI is disabled or NVIDIA_API_KEY is missing in .env")
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:

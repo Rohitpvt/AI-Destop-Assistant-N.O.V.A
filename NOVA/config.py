@@ -28,6 +28,17 @@ MEMORY_DB_PATH = os.path.join(DATA_DIR, "nova_memory.db")
 MEMORY_ENABLED = os.getenv("NOVA_MEMORY_ENABLED", "true").lower() == "true"
 MEMORY_MAX_RECENT = int(os.getenv("NOVA_MEMORY_MAX_RECENT", "10"))
 
+# --- AI/LLM Settings ---
+LLM_ENABLED = os.getenv("NOVA_LLM_ENABLED", "false").lower() == "true"
+LLM_TIMEOUT = int(os.getenv("NOVA_LLM_TIMEOUT", "20"))
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+
+def has_llm_credentials():
+    """Returns True if LLM is enabled and an API key is provided."""
+    return LLM_ENABLED and bool(NVIDIA_API_KEY)
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()

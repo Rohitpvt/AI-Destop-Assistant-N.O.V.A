@@ -70,7 +70,7 @@ Python 3.6+
    - Copy the example environment file:
      `ash
      cp .env.example .env
-     ``n   - Edit .env to customize your assistant name, log levels, and directories.
+     ``n   - Edit .env to customize your assistant name, log levels, and directories.`n   - **AI Brain (Optional)**: Add your NVIDIA_API_KEY and set NOVA_LLM_ENABLED=true to enable natural language understanding.
    - *Note: Do not commit your .env file to version control.*
 
 7. **Run the Assistant**
