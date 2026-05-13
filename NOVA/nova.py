@@ -13,7 +13,6 @@ from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
 from core.voice_runtime import run_wake_mode, run_normal_voice_mode, is_wake_word, is_sleep_command, is_exit_command
-from gui.app import run_gui
 from ai import llm_client, intent_classifier
 from automation import screen_reader, desktop_controller
 from features import utilities, apps, search, music, notes, screenshot, system_monitor
@@ -185,6 +184,7 @@ if __name__ == "__main__":
         log_info("Exiting NOVA Wake Mode")
     elif args.gui:
         log_info("Starting NOVA in GUI Mode")
+        from gui.app import run_gui
         run_gui()
         log_info("Exiting NOVA GUI Mode")
     else:

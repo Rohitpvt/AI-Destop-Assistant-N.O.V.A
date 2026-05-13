@@ -1,134 +1,60 @@
-# NOVA Desktop Voice Assistant🔥
+# N.O.V.A - Next-generation Omniscient Virtual Assistant
 
-<img src="https://giffiles.alphacoders.com/212/212508.gif" alt="">
+NOVA is a high-accuracy, modular AI assistant designed to act as a secure desktop intelligence layer. Inspired by advanced fictional AIs, NOVA combines speech recognition, vision, memory, and automation into a unified, safety-first desktop experience.
 
-**Have you ever wondered how cool it would be to have your own assistant? Imagine how easier it would be doing Wikipedia searches without opening web browsers, and performing many other daily tasks like playing music with the help of a single voice command, opening different browsers in just a voice command.**
+## 🌟 Key Features
+- **Modern GUI**: A sleek PyQt5 dashboard with live logs and memory previews.
+- **Voice Wake Mode**: Listen for "Hey NOVA" to activate.
+- **Screen Awareness**: NOVA can "see" your screen using OCR and summarize context.
+- **Safe Automation**: Controlled typing, hotkeys, and mouse movements (always requires your "Yes").
+- **Long-Term Memory**: Remembers your name, preferences, and past interactions using SQLite.
+- **System Monitoring**: Reports on CPU, RAM, Battery, and active windows.
 
-**This project is simple desktop voice assistant built with python named as “NOVA Desktop Voice Assistant”. This project is fully completed and error free. It was compiled in VS Code Editor.**
+## 🚀 Quick Start
 
-**🔸 Let's be honest, it's not as intelligent as in the movie, but it can do a lot of cool things and automate your daily tasks you do on your personal computers/laptops.**
+### 1. Prerequisites
+- **Python 3.8+**
+- **Tesseract OCR**: [Download and Install](https://github.com/UB-Mannheim/tesseract/wiki).
+- **FFmpeg**: Required for some audio processing.
 
-## 📌Built with
+### 2. Installation
+```powershell
+git clone https://github.com/Rohitpvt/AI-Destop-Assistant-N.O.V.A.git
+cd AI-Destop-Assistant-N.O.V.A
+python -m venv venv
+.\venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-<code><img height="30" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/python/python.png"></code>
+### 3. Configuration
+Copy `.env.example` to `.env` and fill in your keys:
+```env
+NVIDIA_API_KEY=your_key_here
+NOVA_TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
 
-## 📌Features
+### 4. Running NOVA
+- **GUI Mode (Recommended)**: `python NOVA/nova.py --gui`
+- **Wake Mode**: `python NOVA/nova.py --wake`
+- **Standard Voice Mode**: `python NOVA/nova.py`
+- **Diagnostic Test Mode**: `python NOVA/nova.py --test`
 
-It can do a lot of cool things, some of them being:
+## 🔒 Safety & Privacy
+- **Confirmation Layer**: All desktop actions (typing, clicking, saving files) require explicit user approval.
+- **Scrubbing**: Sensitive data like emails or tokens detected on screen are scrubbed before being sent to the AI.
+- **Fail-safe**: Moving the mouse to any corner of the screen immediately halts any automation.
 
-- Greet user
-- Tell current time and date
-- Launch applications/softwares
-- Open any website
-- Tells about any person (via Wikipedia)
-- Can search anything on Google
-- Plays music
-- Take important note in text file
-- Can take screenshot and save it with custom filename
-- Can tell jokes
+## 🛠 Project Structure
+- `NOVA/ai/`: LLM client and intent classification.
+- `NOVA/automation/`: OCR, screen capture, and desktop control.
+- `NOVA/core/`: Routing, speech, safety, and runtime logic.
+- `NOVA/features/`: System monitoring, apps, notes, and utilities.
+- `NOVA/gui/`: PyQt5 interface and background workers.
+- `NOVA/memory/`: SQLite database and preference management.
+- `NOVA/skills/`: Integrated multi-step workflows.
 
-## Requirements
-
-Python 3.6+
-
-## 📌Installation
-
-1. **Fork The Repository**
-   - Click the "Fork" button on the top right corner of the repository page.
-
-2. **Clone The Repository**
-   - Clone the forked repository to your local machine:
-     ```bash
-     git clone <URL>
-     cd NOVA-Desktop-Voice-Assistant
-     ```
-
-3.  **Create and Activate a Virtual Environment**
-     - Create a virtual environment:
-     ```bash
-     python -m venv .venv
-     ```
-   - Activate the virtual environment:
-     - For Windows:
-       ```bash
-       .venv\Scripts\activate
-       ```
-     - For macOS/Linux:
-       ```bash
-       source .venv/bin/activate
-       ```
-   - This activates the virtual environment and should look like `(venv) directory/of/your/project>`
-
-4. **Install Requirements**
-
-   - Install all the requirements given in **[requirements.txt](https://github.com/kishanrajput23/Jarvis-Desktop-Voice-Assistant/blob/main/requirements.txt)** by running the command `pip install -r requirements.txt`
-
-5. **Install PyAudio**  
-   - Follow the instructions given **[here](https://stackoverflow.com/questions/52283840/i-cant-install-pyaudio-on-windows-how-to-solve-error-microsoft-visual-c-14)**
-
-6. **Configure Environment Variables**
-   - Copy the example environment file:
-     `ash
-     cp .env.example .env
-     ``n   - Edit .env to customize your assistant name, log levels, and directories.`n   - **AI Brain (Optional)**: Add your NVIDIA_API_KEY and set NOVA_LLM_ENABLED=true to enable natural language understanding.
-   - *Note: Do not commit your .env file to version control.*
-
-7. **Run the Assistant**
-  - Run the main script:
-    ```bash
-    python NOVA/nova.py
-    ```
-  - For Test Mode:
-    ```bash
-    python NOVA/nova.py --test
-    ```
-  - Now Enjoy with your own assistant !!!!
-
-7. **Deactivate the Virtual Environment**
-   - After you're done, deactivate the virtual environment:
-     ```bash
-     deactivate
-     ```
-
-## 📌Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📌Author
-
-👤 **Kishan Kumar Rai**
-
-- Twitter: [@kishan_rajput23](https://twitter.com/kishan_rajput23)
-- Github: [@kishanrajput23](https://github.com/kishanrajput23)
-- LinkedIn: [@kishan-kumar-rai](https://linkedin.com/in/kishan-kumar-rai-23112000)
-
-## 📌Show your support
-
-Please ⭐️ this repository if this project helped you!
-
-## 📌Learning Resources to Extend This Project
-
-To build this project further and enhance its capabilities, a strong understanding of the following areas is recommended:
-
-### 🐍 Python Fundamentals
-Python is the core language behind this project. A solid grasp of syntax, control flow, functions, and error handling will help you modify and extend the assistant’s functionality.  
-👉 [Python Programming Course](https://www.mygreatlearning.com/academy/premium/master-python-programming)
-
-### 🎙️ Voice Processing & NLP
-Voice commands are processed using speech and text-based techniques. Understanding Natural Language Processing (NLP) concepts such as tokenization and text analysis can help improve voice interaction.  
-👉 [Introduction to NLP](https://www.mygreatlearning.com/academy/learn-for-free/courses/introduction-to-natural-language-processing)
-
-### 🤖 Intelligence & Generative AI
-Currently, the assistant follows predefined logic. By integrating Generative AI concepts, it can be enhanced into a conversational assistant capable of generating intelligent responses and performing web-based tasks.  
-👉 [Introduction to Generative AI](https://www.mygreatlearning.com/academy/premium/master-generative-ai)
-
-### 👁️ Computer Vision
-To make the assistant more advanced, computer vision can be introduced for features like face detection and gesture control. Learning image and video processing fundamentals is a good starting point.  
-👉 [Computer Vision Essentials](https://www.mygreatlearning.com/academy/learn-for-free/courses/computer-vision-essentials)
-
-### 📄 Related Reading
-For a conceptual overview of building voice assistants in Python, you can refer to this article: [CLICK HERE](https://www.mygreatlearning.com/blog/jarvis-desktop-assistant-python-project/)
+## 📋 License
+This project is for educational and personal use. Use responsibly.
 
 ---
-
-> *Some learning resources mentioned above are shared as part of an educational collaboration.*
+*Developed by Rohitpvt & Antigravity AI*
