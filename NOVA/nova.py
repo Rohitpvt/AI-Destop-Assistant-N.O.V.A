@@ -13,8 +13,8 @@ from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
 from ai import llm_client, intent_classifier
-from automation import screen_reader
-from features import utilities, apps, search, music, notes, screenshot
+from automation import screen_reader, desktop_controller
+from features import utilities, apps, search, music, notes, screenshot, system_monitor
 
 # Import config
 try:
@@ -47,6 +47,10 @@ def run_test_menu():
         print("[15] Test screen capture")
         print("[16] Test OCR screen reading")
         print("[17] Test full screen awareness")
+        print("[18] Test system status")
+        print("[19] Test active window title")
+        print("[20] Test safe typing confirmation")
+        print("[21] Test safe hotkey confirmation")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -114,6 +118,16 @@ def run_test_menu():
                 print(f"Summary: {res['summary']}")
             else:
                 print(f"Error: {res['error']}")
+        elif choice == '18':
+            print("Fetching system status...")
+            print(system_monitor.summarize_system_status())
+        elif choice == '19':
+            status = system_monitor.get_system_status()
+            print(f"Active Window: {status.get('active_window')}")
+        elif choice == '20':
+            handle_command("type this: hello from nova", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '21':
+            handle_command("press ctrl c", test_mode_active=True, takecommand_func=takecommand)
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:

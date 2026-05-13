@@ -67,6 +67,10 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - Logs are stored in: `logs/nova.log`
 - Rotating logs are enabled (keeps last 3 backups).
 
+### Safe Automation
+- All desktop actions (typing, clicking, etc.) require explicit user confirmation.
+- PyAutoGUI Fail-safe is active: Move the mouse to any corner of the screen to abort.
+
 ### Screen Awareness
 - Tesseract OCR is required for screen reading.
 - Install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki

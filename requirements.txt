@@ -10,6 +10,10 @@ python-dotenv  # For managing environment variables
 openai         # For LLM-based intent classification (Phase 5)
 mss            # For fast screen capturing (Phase 6)
 pytesseract    # For OCR text extraction (Phase 6)
+psutil         # For system monitoring (Phase 7)
+pyautogui      # For safe desktop automation (Phase 7)
+pygetwindow    # For active window tracking (Phase 7)
+pyperclip      # For clipboard management (Phase 7)
 
 # NOTE: PyAudio is required for microphone support.
 # If you encounter errors on Windows, download the appropriate .whl file from:

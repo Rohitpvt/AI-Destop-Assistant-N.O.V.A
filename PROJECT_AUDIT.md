@@ -104,6 +104,7 @@ NOVA is currently in a **transitional state**. Phase 1 (Clean Command Router) an
 - [x] Phase 4: Long-Term Memory (SQLite interaction history and preferences)
 - [x] Phase 5: AI Brain (NVIDIA LLM intent classification and chat)
 - [x] Phase 6: Screen Awareness (Capture, OCR, and Analysis)
+- [x] Phase 7: System Monitoring & Safe Automation (psutil, pyautogui, confirmations)
 
 ---
 *Audit performed on: 2026-05-14*

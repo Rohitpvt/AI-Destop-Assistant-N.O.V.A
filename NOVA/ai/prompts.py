@@ -21,6 +21,13 @@ AVAILABLE INTENTS:
 - clear_memory: User wants to wipe their interaction history.
 - greeting: User is saying hello, hi, or good morning.
 - screen_read: User wants you to look at, read, or analyze their screen.
+- system_status: User wants to know about CPU, RAM, or battery status.
+- automation_type_text: User wants you to type something (e.g., "type hello world").
+- automation_paste_text: User wants you to paste something.
+- automation_copy_clipboard: User wants you to copy something to clipboard.
+- automation_hotkey: User wants you to press a key combo (e.g., "press ctrl c").
+- automation_mouse_move: User wants you to move the mouse.
+- automation_click: User wants you to click the current mouse position.
 - exit: User wants to go offline, shutdown, restart, or close the assistant.
 - general_chat: User is making conversation or asking a question that doesn't fit the actions above.
 - unknown: User command is unclear or empty.

@@ -1,9 +1,9 @@
 from core.logger import log_event, log_info
 from core.tts import speak
-from features import apps, browser, search, notes, screenshot, music, utilities
+from features import apps, browser, search, notes, screenshot, music, utilities, system_monitor
 from memory import memory_db
 from ai import intent_classifier
-from automation import screen_reader
+from automation import screen_reader, desktop_controller
 import config
 import logging
 
@@ -121,6 +121,51 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
                 speak(f"Sorry, I couldn't read the screen. {res['error']}")
                 response_text = f"Screen reading failed: {res['error']}"
                 success = False
+        elif intent == "system_status":
+            summary = system_monitor.summarize_system_status()
+            speak(summary)
+            print(f"[System Status]: {summary}")
+            response_text = summary
+        elif intent == "automation_type_text":
+            text = target if target else query.replace("type this", "").strip()
+            res = desktop_controller.type_text(text, test_mode_active, takecommand_func)
+            response_text = f"Typed text: {text}" if res["success"] else f"Typing failed: {res.get('error')}"
+            success = res["success"]
+        elif intent == "automation_paste_text":
+            text = target if target else query.replace("paste this", "").strip()
+            res = desktop_controller.paste_text(text, test_mode_active, takecommand_func)
+            response_text = f"Pasted text: {text}" if res["success"] else f"Pasting failed: {res.get('error')}"
+            success = res["success"]
+        elif intent == "automation_copy_clipboard":
+            res = desktop_controller.copy_clipboard()
+            if res["success"]:
+                speak("I have copied the selection to the clipboard.")
+                response_text = f"Copied to clipboard: {res['text'][:50]}..."
+            else:
+                speak("Failed to copy selection.")
+                response_text = f"Copy failed: {res.get('error')}"
+                success = False
+        elif intent == "automation_hotkey":
+            # Map common strings to hotkey lists
+            key_map = {"ctrl c": ["ctrl", "c"], "ctrl v": ["ctrl", "v"], "ctrl a": ["ctrl", "a"], "ctrl s": ["ctrl", "s"], "alt tab": ["alt", "tab"], "escape": ["esc"], "enter": ["enter"]}
+            target_key = target.lower() if target else ""
+            keys = key_map.get(target_key)
+            if keys:
+                res = desktop_controller.press_hotkey(keys, test_mode_active, takecommand_func)
+                response_text = f"Pressed hotkey: {keys}" if res["success"] else f"Hotkey failed: {res.get('error')}"
+                success = res["success"]
+            else:
+                response_text = f"Unsupported hotkey: {target}"
+                success = False
+        elif intent == "automation_mouse_move":
+            # Very simple mapping for now
+            res = desktop_controller.move_mouse_relative(50, 0, test_mode_active, takecommand_func) # Default right
+            response_text = "Moved mouse." if res["success"] else "Mouse move failed."
+            success = res["success"]
+        elif intent == "automation_click":
+            res = desktop_controller.click_current_position(test_mode_active, takecommand_func)
+            response_text = "Clicked mouse." if res["success"] else "Click failed."
+            success = res["success"]
         elif intent == "general_chat":
             recent_memory = memory_db.get_recent_interactions(5)
             chat_resp = intent_classifier.generate_chat_response(query, recent_memory)
@@ -165,6 +210,39 @@ def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
         intent = "date"
         utilities.date()
         response_text = "Told the date."
+    elif "system status" in query or "check my system" in query or "cpu usage" in query or "ram usage" in query:
+        intent = "system_status"
+        summary = system_monitor.summarize_system_status()
+        speak(summary)
+        print(f"[System Status]: {summary}")
+        response_text = summary
+    elif "type this" in query:
+        intent = "automation_type_text"
+        text = query.replace("type this", "").replace(":", "").strip()
+        res = desktop_controller.type_text(text, test_mode_active, takecommand_func)
+        response_text = f"Typed: {text}" if res["success"] else "Typing failed."
+        success = res["success"]
+    elif "paste this" in query:
+        intent = "automation_paste_text"
+        text = query.replace("paste this", "").replace(":", "").strip()
+        res = desktop_controller.paste_text(text, test_mode_active, takecommand_func)
+        response_text = f"Pasted: {text}" if res["success"] else "Pasting failed."
+        success = res["success"]
+    elif "press ctrl c" in query:
+        intent = "automation_hotkey"
+        res = desktop_controller.press_hotkey(["ctrl", "c"], test_mode_active, takecommand_func)
+        response_text = "Pressed Ctrl+C." if res["success"] else "Hotkey failed."
+        success = res["success"]
+    elif "press ctrl v" in query:
+        intent = "automation_hotkey"
+        res = desktop_controller.press_hotkey(["ctrl", "v"], test_mode_active, takecommand_func)
+        response_text = "Pressed Ctrl+V." if res["success"] else "Hotkey failed."
+        success = res["success"]
+    elif "click here" in query:
+        intent = "automation_click"
+        res = desktop_controller.click_current_position(test_mode_active, takecommand_func)
+        response_text = "Clicked mouse." if res["success"] else "Click failed."
+        success = res["success"]
     elif "wikipedia" in query:
         intent = "wikipedia"
         query_text = query.replace("wikipedia", "").strip()
@@ -197,17 +275,14 @@ def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
         screenshot.take_screenshot()
         speak("I've taken screenshot, please check it")
         response_text = "Took a screenshot."
-    elif "look at my screen" in query or "read my screen" in query or "what is on my screen" in query or "analyze screen" in query or "scan screen" in query:
+    elif "look at my screen" in query or "read my screen" in query or "what is on my screen" in query or "analyze screen" in query:
         intent = "screen_read"
-        speak("Analyzing your screen, please wait.")
         res = screen_reader.get_screen_context()
         if res["success"]:
             speak(res["summary"])
-            print(f"[Screen Summary]: {res['summary']}")
             response_text = res["summary"]
         else:
-            speak(f"Could not read the screen. {res['error']}")
-            response_text = f"Screen reading failed: {res['error']}"
+            speak("Could not read the screen.")
             success = False
     elif "tell me a joke" in query:
         intent = "joke"

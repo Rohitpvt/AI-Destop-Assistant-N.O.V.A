@@ -46,6 +46,13 @@ OCR_ENABLED = os.getenv("NOVA_OCR_ENABLED", "true").lower() == "true"
 OCR_LANGUAGE = os.getenv("NOVA_OCR_LANGUAGE", "eng")
 TESSERACT_CMD = os.getenv("NOVA_TESSERACT_CMD", "")
 
+# --- Safe Automation & Monitoring Settings ---
+AUTOMATION_ENABLED = os.getenv("NOVA_AUTOMATION_ENABLED", "true").lower() == "true"
+REQUIRE_CONFIRMATION_FOR_ACTIONS = os.getenv("NOVA_REQUIRE_CONFIRMATION_FOR_ACTIONS", "true").lower() == "true"
+SYSTEM_MONITORING_ENABLED = os.getenv("NOVA_SYSTEM_MONITORING_ENABLED", "true").lower() == "true"
+PYAUTOGUI_FAILSAFE = True
+AUTOMATION_PAUSE_SECONDS = 0.2
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()
