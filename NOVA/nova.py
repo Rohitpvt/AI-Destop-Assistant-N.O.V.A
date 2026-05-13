@@ -12,6 +12,7 @@ from core.logger import log_event, log_info
 from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
+from core.voice_runtime import run_wake_mode, run_normal_voice_mode, is_wake_word, is_sleep_command, is_exit_command
 from ai import llm_client, intent_classifier
 from automation import screen_reader, desktop_controller
 from features import utilities, apps, search, music, notes, screenshot, system_monitor
@@ -55,6 +56,9 @@ def run_test_menu():
         print("[23] Test remember screen context")
         print("[24] Test create note from command")
         print("[25] Test summarize recent memory to note")
+        print("[26] Test wake-word matching")
+        print("[27] Test sleep/exit command matching")
+        print("[28] Test voice recognition once")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -140,6 +144,17 @@ def run_test_menu():
             handle_command("make a note: this is a test note from NOVA", test_mode_active=True, takecommand_func=takecommand)
         elif choice == '25':
             handle_command("summarize my recent activity", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '26':
+            phrase = input("Enter phrase to test for wake word: ")
+            print(f"Is wake word: {is_wake_word(phrase)}")
+        elif choice == '27':
+            phrase = input("Enter phrase to test for sleep/exit: ")
+            print(f"Is sleep: {is_sleep_command(phrase)}")
+            print(f"Is exit: {is_exit_command(phrase)}")
+        elif choice == '28':
+            print("Listening for 5 seconds...")
+            res = takecommand()
+            print(f"Recognized: '{res}'")
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:
@@ -154,20 +169,19 @@ def run_test_menu():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"{config.DEFAULT_NAME} Desktop Voice Assistant")
     parser.add_argument("--test", action="store_true", help="Run in terminal-based test mode")
+    parser.add_argument("--wake", action="store_true", help="Run in always-listening wake mode")
     args = parser.parse_args()
 
-    test_mode_active = args.test
-
-    if test_mode_active:
+    if args.test:
         print(f"--- {config.DEFAULT_NAME} Test Mode Active ---")
         log_info("Starting NOVA in Test Mode")
         run_test_menu()
         log_info("Exiting NOVA Test Mode")
+    elif args.wake:
+        log_info("Starting NOVA in Wake Mode")
+        run_wake_mode()
+        log_info("Exiting NOVA Wake Mode")
     else:
-        utilities.wishme()
-        log_info("Starting NOVA in Voice Mode")
-        while True:
-            query = takecommand()
-            if not handle_command(query, test_mode_active=False, takecommand_func=takecommand):
-                break
-        log_info("Exiting NOVA Voice Mode")
+        log_info("Starting NOVA in Normal Voice Mode")
+        run_normal_voice_mode()
+        log_info("Exiting NOVA Normal Voice Mode")

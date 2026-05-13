@@ -1,25 +1,50 @@
 import speech_recognition as sr
-import sys
 import os
+import sys
+import logging
+
+# Add parent directory to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    import config
+except ImportError:
+    class config:
+        LISTEN_TIMEOUT_SECONDS = 5
+        PHRASE_TIME_LIMIT_SECONDS = 10
+
+from core.logger import log_info, log_event
 
 def takecommand(force_text=False) -> str:
-    """Takes input from user, prioritizing microphone unless force_text is True."""
-    if not force_text:
-        try:
-            r = sr.Recognizer()
-            with sr.Microphone() as source:
-                print("Listening...")
-                r.pause_threshold = 1
-                audio = r.listen(source, timeout=5)
+    """Listens for a command from the microphone and returns it as text."""
+    if force_text:
+        return input("Enter command: ").lower().strip()
 
-            print("Recognizing...")
-            query = r.recognize_google(audio, language="en-in")
-            print(f"You said: {query}")
-            return query.lower()
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1
+        try:
+            # Use configurable timeouts
+            audio = r.listen(source, 
+                             timeout=config.LISTEN_TIMEOUT_SECONDS, 
+                             phrase_time_limit=config.PHRASE_TIME_LIMIT_SECONDS)
+        except sr.WaitTimeoutError:
+            return ""
         except Exception as e:
-            print(f"\n[Microphone/PyAudio error or Timeout: {e}]")
-            sys.stdout.flush()
-    
-    # Fallback or manual text input
-    query = input("Type your command: ")
-    return query.lower() if query else None
+            log_event("takecommand", "Speech", "Failure", f"Microphone error: {str(e)}")
+            print(f"Microphone error: {e}")
+            return ""
+
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}")
+        return query.lower().strip()
+    except sr.UnknownValueError:
+        # We don't log this as an event to avoid spamming logs with background noise
+        return ""
+    except Exception as e:
+        log_event("takecommand", "Speech", "Failure", f"Recognition error: {str(e)}")
+        print(f"Recognition error: {e}")
+        return ""

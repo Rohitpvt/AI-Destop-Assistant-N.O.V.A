@@ -106,6 +106,7 @@ NOVA is currently in a **transitional state**. Phase 1 (Clean Command Router) an
 - [x] Phase 6: Screen Awareness (Capture, OCR, and Analysis)
 - [x] Phase 7: System Monitoring & Safe Automation (psutil, pyautogui, confirmations)
 - [x] Phase 8: Advanced Skills & Integration (Screen-to-note, Memory-to-note, Session logging)
+- [x] Phase 9: Voice Wake Mode & Runtime (Always-listening wake word, sleep/exit commands)
 
 ---
 *Audit performed on: 2026-05-14*

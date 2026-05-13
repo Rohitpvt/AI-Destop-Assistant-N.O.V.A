@@ -59,6 +59,16 @@ SKILL_CONFIRMATION_REQUIRED = os.getenv("NOVA_SKILL_CONFIRMATION_REQUIRED", "tru
 MAX_SKILL_STEPS = int(os.getenv("NOVA_MAX_SKILL_STEPS", "5"))
 SAVE_SKILL_OUTPUTS = os.getenv("NOVA_SAVE_SKILL_OUTPUTS", "true").lower() == "true"
 
+# --- Voice Wake Mode Settings ---
+WAKE_MODE_ENABLED = os.getenv("NOVA_WAKE_MODE_ENABLED", "false").lower() == "true"
+WAKE_WORDS = [w.strip().lower() for w in os.getenv("NOVA_WAKE_WORDS", "nova,hey nova,wake up nova").split(",")]
+SLEEP_WORDS = [w.strip().lower() for w in os.getenv("NOVA_SLEEP_WORDS", "sleep,go to sleep,stop listening").split(",")]
+EXIT_WORDS = [w.strip().lower() for w in os.getenv("NOVA_EXIT_WORDS", "exit,quit,shutdown nova").split(",")]
+LISTEN_TIMEOUT_SECONDS = int(os.getenv("NOVA_LISTEN_TIMEOUT_SECONDS", "5"))
+PHRASE_TIME_LIMIT_SECONDS = int(os.getenv("NOVA_PHRASE_TIME_LIMIT_SECONDS", "10"))
+WAKE_LISTEN_INTERVAL_SECONDS = 1
+VOICE_CONFIRMATION_ENABLED = os.getenv("NOVA_VOICE_CONFIRMATION_ENABLED", "true").lower() == "true"
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()

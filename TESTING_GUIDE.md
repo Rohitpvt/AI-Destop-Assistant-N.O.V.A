@@ -67,6 +67,12 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - Logs are stored in: `logs/nova.log`
 - Rotating logs are enabled (keeps last 3 backups).
 
+### Voice Wake Mode
+- Start with: `python NOVA\nova.py --wake`
+- Wake words: 'nova', 'hey nova'.
+- Sleep command: 'sleep' or 'go to sleep'.
+- Exit command: 'exit' or 'shutdown nova'.
+
 ### Advanced Skills
 - Combined routines: Screen-to-note, Memory-to-note.
 - All data-saving skills require confirmation.
