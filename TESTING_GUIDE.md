@@ -67,6 +67,12 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - Logs are stored in: `logs/nova.log`
 - Rotating logs are enabled (keeps last 3 backups).
 
+### Modern Desktop GUI
+- Start with: `python NOVA\nova.py --gui`
+- Chat interface with live logs and memory.
+- Integrated voice and wake mode buttons.
+- Visual confirmation dialogs for safe automation.
+
 ### Voice Wake Mode
 - Start with: `python NOVA\nova.py --wake`
 - Wake words: 'nova', 'hey nova'.

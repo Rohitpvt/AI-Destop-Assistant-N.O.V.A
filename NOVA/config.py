@@ -69,6 +69,15 @@ PHRASE_TIME_LIMIT_SECONDS = int(os.getenv("NOVA_PHRASE_TIME_LIMIT_SECONDS", "10"
 WAKE_LISTEN_INTERVAL_SECONDS = 1
 VOICE_CONFIRMATION_ENABLED = os.getenv("NOVA_VOICE_CONFIRMATION_ENABLED", "true").lower() == "true"
 
+# --- GUI Settings ---
+GUI_ENABLED = os.getenv("NOVA_GUI_ENABLED", "true").lower() == "true"
+GUI_THEME = os.getenv("NOVA_GUI_THEME", "dark")
+GUI_WINDOW_TITLE = os.getenv("NOVA_GUI_WINDOW_TITLE", "NOVA Desktop Assistant")
+GUI_WIDTH = int(os.getenv("NOVA_GUI_WIDTH", "1000"))
+GUI_HEIGHT = int(os.getenv("NOVA_GUI_HEIGHT", "700"))
+GUI_SHOW_LOG_PANEL = os.getenv("NOVA_GUI_SHOW_LOG_PANEL", "true").lower() == "true"
+GUI_SHOW_MEMORY_PANEL = os.getenv("NOVA_GUI_SHOW_MEMORY_PANEL", "true").lower() == "true"
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()

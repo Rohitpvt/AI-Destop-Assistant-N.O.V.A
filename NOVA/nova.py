@@ -13,6 +13,7 @@ from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
 from core.voice_runtime import run_wake_mode, run_normal_voice_mode, is_wake_word, is_sleep_command, is_exit_command
+from gui.app import run_gui
 from ai import llm_client, intent_classifier
 from automation import screen_reader, desktop_controller
 from features import utilities, apps, search, music, notes, screenshot, system_monitor
@@ -170,6 +171,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f"{config.DEFAULT_NAME} Desktop Voice Assistant")
     parser.add_argument("--test", action="store_true", help="Run in terminal-based test mode")
     parser.add_argument("--wake", action="store_true", help="Run in always-listening wake mode")
+    parser.add_argument("--gui", action="store_true", help="Run in modern desktop GUI mode")
     args = parser.parse_args()
 
     if args.test:
@@ -181,6 +183,10 @@ if __name__ == "__main__":
         log_info("Starting NOVA in Wake Mode")
         run_wake_mode()
         log_info("Exiting NOVA Wake Mode")
+    elif args.gui:
+        log_info("Starting NOVA in GUI Mode")
+        run_gui()
+        log_info("Exiting NOVA GUI Mode")
     else:
         log_info("Starting NOVA in Normal Voice Mode")
         run_normal_voice_mode()

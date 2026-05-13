@@ -14,6 +14,7 @@ psutil         # For system monitoring (Phase 7)
 pyautogui      # For safe desktop automation (Phase 7)
 pygetwindow    # For active window tracking (Phase 7)
 pyperclip      # For clipboard management (Phase 7)
+PyQt5          # For Modern Desktop GUI (Phase 10)
 
 # NOTE: PyAudio is required for microphone support.
 # If you encounter errors on Windows, download the appropriate .whl file from:
