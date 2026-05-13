@@ -2,10 +2,16 @@ import os
 import sys
 from dotenv import load_dotenv
 
-# Base directory of the project
-# This assumes the config.py is in the NOVA/ folder
-NOVA_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(NOVA_DIR)
+# Base directory detection
+if getattr(sys, 'frozen', False):
+    # Running as a bundled executable
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+    # When bundled, NOVA folder is inside the _internal folder or beside exe
+    # But PROJECT_ROOT is where .env and data/ should live.
+else:
+    # Running as a normal Python script
+    NOVA_DIR = os.path.dirname(os.path.abspath(__file__))
+    PROJECT_ROOT = os.path.dirname(NOVA_DIR)
 
 # Load environment variables from .env file
 load_dotenv(os.path.join(PROJECT_ROOT, '.env'))

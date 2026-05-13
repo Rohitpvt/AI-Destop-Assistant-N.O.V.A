@@ -108,6 +108,7 @@ NOVA is currently in a **transitional state**. Phase 1 (Clean Command Router) an
 - [x] Phase 8: Advanced Skills & Integration (Screen-to-note, Memory-to-note, Session logging)
 - [x] Phase 9: Voice Wake Mode & Runtime (Always-listening wake word, sleep/exit commands)
 - [x] Phase 10: Modern Desktop GUI (PyQt5 interface, multi-threaded worker, status tracking)
+- [x] Phase 11: Windows EXE Packaging (PyInstaller, standalone distribution, path handling)
 - [x] Final Audit & Release (Stabilization, documentation, release notes)
 
 ---

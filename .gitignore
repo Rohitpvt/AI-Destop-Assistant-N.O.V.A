@@ -31,3 +31,10 @@ data/latest_screen.png
 # IDEs
 .vscode/
 .idea/
+
+# Build & Distribution
+build/
+dist/
+*.exe
+*.zip
+*.spec
