@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QObject, Qt
 import os
 import sys
 
@@ -8,6 +8,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.router import handle_command
 from core.speech import takecommand
 from core.logger import log_info
+
+class ConfirmationRequester(QObject):
+    """Bridge to request confirmation from the main thread."""
+    request_signal = pyqtSignal(str)
+    
+    def __init__(self):
+        super().__init__()
+        self.result = False
+
+    def confirm(self, description):
+        """Emits signal and waits for the slot to finish (BlockingQueuedConnection)."""
+        self.request_signal.emit(description)
+        return self.result
+
+# Singleton instance for the safety module to call
+confirmation_bridge = ConfirmationRequester()
 
 class CommandWorker(QThread):
     """Background worker to execute commands without freezing the GUI."""
@@ -22,13 +38,9 @@ class CommandWorker(QThread):
         self.status_update.emit("Thinking...")
         log_info(f"GUI Command Execution: [{self.query}]")
         
-        # Capture the last memory response or use a result from handle_command if we modify it
-        # For now, we rely on the fact that handle_command saves to memory
+        # In GUI mode, router calls safety.confirm_action, which now calls our bridge
         success = handle_command(self.query, test_mode_active=False, takecommand_func=takecommand)
         
-        # We don't easily get the response_text back from the current router structure 
-        # unless we fetch it from memory or update the router.
-        # Let's fetch the very last response from memory
         from memory import memory_db
         interactions = memory_db.get_recent_interactions(1)
         resp = interactions[0][2] if interactions else "Command processed."
