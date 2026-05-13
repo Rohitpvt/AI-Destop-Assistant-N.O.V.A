@@ -25,6 +25,9 @@ screenshot.png
 *.sqlite3
 data/nova_memory.db
 
+# Screen Awareness Runtime Files
+data/latest_screen.png
+
 # IDEs
 .vscode/
 .idea/

@@ -3,6 +3,7 @@ from core.tts import speak
 from features import apps, browser, search, notes, screenshot, music, utilities
 from memory import memory_db
 from ai import intent_classifier
+from automation import screen_reader
 import config
 import logging
 
@@ -17,7 +18,7 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
     # Step 1: Try AI Intent Classification if enabled
     if config.has_llm_credentials():
         log_info(f"Attempting AI classification for query: [{query}]")
-        recent_memory = memory_db.get_recent_interactions(5) # Pass last 5 interactions for context
+        recent_memory = memory_db.get_recent_interactions(5)
         classification = intent_classifier.classify_intent_with_llm(query, recent_memory)
         
         intent = classification.get("intent", "unknown")
@@ -109,6 +110,17 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
         elif intent == "greeting":
             utilities.wishme()
             response_text = "Greeted user."
+        elif intent == "screen_read":
+            speak("One moment, I am looking at your screen.")
+            res = screen_reader.get_screen_context()
+            if res["success"]:
+                speak(res["summary"])
+                print(f"[NOVA Screen Summary]: {res['summary']}")
+                response_text = res["summary"]
+            else:
+                speak(f"Sorry, I couldn't read the screen. {res['error']}")
+                response_text = f"Screen reading failed: {res['error']}"
+                success = False
         elif intent == "general_chat":
             recent_memory = memory_db.get_recent_interactions(5)
             chat_resp = intent_classifier.generate_chat_response(query, recent_memory)
@@ -185,6 +197,18 @@ def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
         screenshot.take_screenshot()
         speak("I've taken screenshot, please check it")
         response_text = "Took a screenshot."
+    elif "look at my screen" in query or "read my screen" in query or "what is on my screen" in query or "analyze screen" in query or "scan screen" in query:
+        intent = "screen_read"
+        speak("Analyzing your screen, please wait.")
+        res = screen_reader.get_screen_context()
+        if res["success"]:
+            speak(res["summary"])
+            print(f"[Screen Summary]: {res['summary']}")
+            response_text = res["summary"]
+        else:
+            speak(f"Could not read the screen. {res['error']}")
+            response_text = f"Screen reading failed: {res['error']}"
+            success = False
     elif "tell me a joke" in query:
         intent = "joke"
         utilities.tell_joke()
@@ -220,7 +244,7 @@ def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
         intent = "unknown"
         response_text = "No matching keyword found."
         success = False
-        speak("I am not sure how to help with that. Try a clearer command or check my guide.")
+        speak("I am not sure how to help with that.")
 
     # Save to memory
     if config.MEMORY_ENABLED:

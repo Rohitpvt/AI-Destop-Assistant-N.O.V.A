@@ -13,6 +13,7 @@ from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
 from ai import llm_client, intent_classifier
+from automation import screen_reader
 from features import utilities, apps, search, music, notes, screenshot
 
 # Import config
@@ -43,6 +44,9 @@ def run_test_menu():
         print("[12] Test memory (show/clear)")
         print("[13] Test AI connection")
         print("[14] Test AI classification")
+        print("[15] Test screen capture")
+        print("[16] Test OCR screen reading")
+        print("[17] Test full screen awareness")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -92,6 +96,24 @@ def run_test_menu():
                 print(json.dumps(result, indent=2))
             else:
                 print("AI is disabled or NVIDIA_API_KEY is missing in .env")
+        elif choice == '15':
+            print("Capturing screen...")
+            res = screen_reader.capture_screen()
+            print(f"Result: {res}")
+        elif choice == '16':
+            print("Running OCR on latest screen...")
+            res = screen_reader.extract_text_from_screen()
+            if res["success"]:
+                print(f"Extracted Text:\n{res['text'][:500]}...")
+            else:
+                print(f"Error: {res['error']}")
+        elif choice == '17':
+            print("Analyzing screen...")
+            res = screen_reader.get_screen_context()
+            if res["success"]:
+                print(f"Summary: {res['summary']}")
+            else:
+                print(f"Error: {res['error']}")
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:

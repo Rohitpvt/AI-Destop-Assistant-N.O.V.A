@@ -20,6 +20,7 @@ AVAILABLE INTENTS:
 - show_memory: User wants to see past interactions.
 - clear_memory: User wants to wipe their interaction history.
 - greeting: User is saying hello, hi, or good morning.
+- screen_read: User wants you to look at, read, or analyze their screen.
 - exit: User wants to go offline, shutdown, restart, or close the assistant.
 - general_chat: User is making conversation or asking a question that doesn't fit the actions above.
 - unknown: User command is unclear or empty.

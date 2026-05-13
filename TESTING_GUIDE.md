@@ -67,6 +67,11 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - Logs are stored in: `logs/nova.log`
 - Rotating logs are enabled (keeps last 3 backups).
 
+### Screen Awareness
+- Tesseract OCR is required for screen reading.
+- Install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki
+- In .env, set: `NOVA_TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe`
+
 ### Memory Storage
 - Interaction history and preferences are stored in: `data/nova_memory.db`
 - You can manage memory using commands like `show memory` and `clear memory`.

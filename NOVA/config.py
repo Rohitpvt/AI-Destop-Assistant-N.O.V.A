@@ -39,6 +39,13 @@ def has_llm_credentials():
     """Returns True if LLM is enabled and an API key is provided."""
     return LLM_ENABLED and bool(NVIDIA_API_KEY)
 
+# --- Screen Awareness / OCR Settings ---
+SCREEN_AWARENESS_ENABLED = os.getenv("NOVA_SCREEN_AWARENESS_ENABLED", "true").lower() == "true"
+SCREENSHOT_ANALYSIS_FILE = os.path.join(DATA_DIR, "latest_screen.png")
+OCR_ENABLED = os.getenv("NOVA_OCR_ENABLED", "true").lower() == "true"
+OCR_LANGUAGE = os.getenv("NOVA_OCR_LANGUAGE", "eng")
+TESSERACT_CMD = os.getenv("NOVA_TESSERACT_CMD", "")
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()
