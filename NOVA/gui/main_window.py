@@ -26,7 +26,6 @@ class MainWindow(QMainWindow):
         register_gui_confirmation_callback(confirmation_bridge.confirm)
         
         # Connect the bridge's signal to our handler with BlockingQueuedConnection
-        # This ensures the dialog runs on the UI thread and blocks the worker thread
         confirmation_bridge.request_signal.connect(self.show_confirmation_dialog, Qt.BlockingQueuedConnection)
         
         self.init_ui()
@@ -128,12 +127,14 @@ class MainWindow(QMainWindow):
         self.worker = CommandWorker(query)
         self.worker.status_update.connect(self.update_status)
         self.worker.finished.connect(self.on_command_finished)
+        self.worker.error_occurred.connect(self.handle_error)
         self.worker.start()
 
     def handle_voice(self):
         self.voice_worker = VoiceWorker()
         self.voice_worker.status_update.connect(self.update_status)
         self.voice_worker.recognized.connect(self.on_voice_recognized)
+        self.voice_worker.error_occurred.connect(self.handle_error)
         self.voice_worker.start()
 
     def toggle_wake_mode(self):
@@ -145,6 +146,7 @@ class MainWindow(QMainWindow):
             self.wake_worker = WakeWorker()
             self.wake_worker.status_update.connect(self.update_status)
             self.wake_worker.command_detected.connect(self.submit_command)
+            self.wake_worker.error_occurred.connect(self.handle_error)
             self.wake_worker.start()
             self.wake_btn.setText("Stop Wake Mode")
 
@@ -157,12 +159,19 @@ class MainWindow(QMainWindow):
         if query:
             self.submit_command(query)
         else:
+            self.append_chat("NOVA", "I did not hear anything.")
             self.update_status("Idle")
 
     @pyqtSlot(str, bool)
     def on_command_finished(self, response, success):
         self.append_chat("NOVA", response)
         self.update_status("Idle")
+        self.update_previews()
+
+    @pyqtSlot(str)
+    def handle_error(self, err_msg):
+        self.append_chat("ERROR", err_msg)
+        self.update_status("Error / Idle")
         self.update_previews()
 
     def update_previews(self):
@@ -183,7 +192,6 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def show_confirmation_dialog(self, action_description):
-        """Displays a PyQt5 confirmation dialog on the main thread."""
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Confirmation Required")
         msg_box.setText(f"NOVA wants to: {action_description}")
@@ -193,5 +201,4 @@ class MainWindow(QMainWindow):
         msg_box.setStyleSheet("color: white; background-color: #2D2D2D;")
         
         result = msg_box.exec_()
-        # Set the result back to the bridge instance so the worker can read it
         confirmation_bridge.result = (result == QMessageBox.Yes)

@@ -59,6 +59,7 @@ def run_test_menu():
         print("[26] Test wake-word matching")
         print("[27] Test sleep/exit command matching")
         print("[28] Test voice recognition once")
+        print("[29] Test voice output (TTS)")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -152,9 +153,13 @@ def run_test_menu():
             print(f"Is sleep: {is_sleep_command(phrase)}")
             print(f"Is exit: {is_exit_command(phrase)}")
         elif choice == '28':
-            print("Listening for 5 seconds...")
+            print("Listening...")
             res = takecommand()
             print(f"Recognized: '{res}'")
+        elif choice == '29':
+            print("Testing voice output...")
+            speak("NOVA voice output test successful.")
+            print("Speak command finished.")
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:

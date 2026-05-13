@@ -21,20 +21,19 @@ def takecommand(force_text=False) -> str:
         return input("Enter command: ").lower().strip()
 
     r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        r.pause_threshold = 1
-        try:
-            # Use configurable timeouts
+    try:
+        with sr.Microphone() as source:
+            print("Listening...")
+            r.pause_threshold = 1
             audio = r.listen(source, 
                              timeout=config.LISTEN_TIMEOUT_SECONDS, 
                              phrase_time_limit=config.PHRASE_TIME_LIMIT_SECONDS)
-        except sr.WaitTimeoutError:
-            return ""
-        except Exception as e:
-            log_event("takecommand", "Speech", "Failure", f"Microphone error: {str(e)}")
-            print(f"Microphone error: {e}")
-            return ""
+    except (sr.WaitTimeoutError, sr.UnknownValueError):
+        return ""
+    except Exception as e:
+        log_event("takecommand", "Speech", "Failure", f"Microphone error: {str(e)}")
+        print(f"Microphone error: {e}")
+        return ""
 
     try:
         print("Recognizing...")
@@ -42,7 +41,6 @@ def takecommand(force_text=False) -> str:
         print(f"User said: {query}")
         return query.lower().strip()
     except sr.UnknownValueError:
-        # We don't log this as an event to avoid spamming logs with background noise
         return ""
     except Exception as e:
         log_event("takecommand", "Speech", "Failure", f"Recognition error: {str(e)}")
