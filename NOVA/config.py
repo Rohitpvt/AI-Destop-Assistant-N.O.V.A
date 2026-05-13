@@ -53,6 +53,12 @@ SYSTEM_MONITORING_ENABLED = os.getenv("NOVA_SYSTEM_MONITORING_ENABLED", "true").
 PYAUTOGUI_FAILSAFE = True
 AUTOMATION_PAUSE_SECONDS = 0.2
 
+# --- Skill System Settings ---
+SKILLS_ENABLED = os.getenv("NOVA_SKILLS_ENABLED", "true").lower() == "true"
+SKILL_CONFIRMATION_REQUIRED = os.getenv("NOVA_SKILL_CONFIRMATION_REQUIRED", "true").lower() == "true"
+MAX_SKILL_STEPS = int(os.getenv("NOVA_MAX_SKILL_STEPS", "5"))
+SAVE_SKILL_OUTPUTS = os.getenv("NOVA_SAVE_SKILL_OUTPUTS", "true").lower() == "true"
+
 # --- Logging Settings ---
 LOG_FILE = os.path.join(LOG_DIR, "nova.log")
 LOG_LEVEL = os.getenv("NOVA_LOG_LEVEL", "INFO").upper()

@@ -4,6 +4,7 @@ from features import apps, browser, search, notes, screenshot, music, utilities,
 from memory import memory_db
 from ai import intent_classifier
 from automation import screen_reader, desktop_controller
+from skills import skill_manager
 import config
 import logging
 
@@ -41,7 +42,15 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
     should_continue = True
 
     try:
-        if intent == "time":
+        # Check if it's a skill intent
+        if intent.startswith("skill_"):
+            res = skill_manager.run_skill(intent, target, query, test_mode_active, takecommand_func)
+            response_text = res.get("summary") or res.get("message") or "Skill completed."
+            success = res["success"]
+            # Skills that save to memory should be handled here if needed, 
+            # but currently skill_manager handles its own specific storage.
+            
+        elif intent == "time":
             utilities.time()
             response_text = "Told the time."
         elif intent == "date":
@@ -146,7 +155,6 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
                 response_text = f"Copy failed: {res.get('error')}"
                 success = False
         elif intent == "automation_hotkey":
-            # Map common strings to hotkey lists
             key_map = {"ctrl c": ["ctrl", "c"], "ctrl v": ["ctrl", "v"], "ctrl a": ["ctrl", "a"], "ctrl s": ["ctrl", "s"], "alt tab": ["alt", "tab"], "escape": ["esc"], "enter": ["enter"]}
             target_key = target.lower() if target else ""
             keys = key_map.get(target_key)
@@ -158,8 +166,7 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
                 response_text = f"Unsupported hotkey: {target}"
                 success = False
         elif intent == "automation_mouse_move":
-            # Very simple mapping for now
-            res = desktop_controller.move_mouse_relative(50, 0, test_mode_active, takecommand_func) # Default right
+            res = desktop_controller.move_mouse_relative(50, 0, test_mode_active, takecommand_func)
             response_text = "Moved mouse." if res["success"] else "Mouse move failed."
             success = res["success"]
         elif intent == "automation_click":
@@ -202,7 +209,30 @@ def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
     intent = "unknown"
     success = True
 
-    if "time" in query:
+    # Check for skill keywords first
+    if "summarize my screen and save it" in query or "read this screen and make a note" in query or "save screen summary" in query:
+        intent = "skill_summarize_screen_to_note"
+        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
+        response_text = res.get("summary") or "Skill completed."
+        success = res["success"]
+    elif "remember what is on my screen" in query or "save this screen context" in query:
+        intent = "skill_remember_screen_context"
+        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
+        response_text = res.get("summary") or "Skill completed."
+        success = res["success"]
+    elif "make a note" in query or "create note" in query:
+        intent = "skill_create_note"
+        text = query.replace("make a note", "").replace("create note", "").replace(":", "").strip()
+        res = skill_manager.run_skill(intent, text, query, test_mode_active, takecommand_func)
+        response_text = res.get("message") or "Note saved."
+        success = res["success"]
+    elif "summarize my recent activity" in query or "save my recent activity as a note" in query:
+        intent = "skill_summarize_memory_to_note"
+        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
+        response_text = res.get("summary") or "Skill completed."
+        success = res["success"]
+    
+    elif "time" in query:
         intent = "time"
         utilities.time()
         response_text = "Told the time."

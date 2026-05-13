@@ -28,6 +28,10 @@ AVAILABLE INTENTS:
 - automation_hotkey: User wants you to press a key combo (e.g., "press ctrl c").
 - automation_mouse_move: User wants you to move the mouse.
 - automation_click: User wants you to click the current mouse position.
+- skill_summarize_screen_to_note: User wants to save a screen summary as a note.
+- skill_remember_screen_context: User wants you to remember what is on the screen for later.
+- skill_create_note: User wants to create a specific note (e.g., "make a note: ...").
+- skill_summarize_memory_to_note: User wants a summary of recent history saved as a note.
 - exit: User wants to go offline, shutdown, restart, or close the assistant.
 - general_chat: User is making conversation or asking a question that doesn't fit the actions above.
 - unknown: User command is unclear or empty.

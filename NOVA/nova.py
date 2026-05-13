@@ -51,6 +51,10 @@ def run_test_menu():
         print("[19] Test active window title")
         print("[20] Test safe typing confirmation")
         print("[21] Test safe hotkey confirmation")
+        print("[22] Test summarize screen to note")
+        print("[23] Test remember screen context")
+        print("[24] Test create note from command")
+        print("[25] Test summarize recent memory to note")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -128,6 +132,14 @@ def run_test_menu():
             handle_command("type this: hello from nova", test_mode_active=True, takecommand_func=takecommand)
         elif choice == '21':
             handle_command("press ctrl c", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '22':
+            handle_command("summarize my screen and save it", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '23':
+            handle_command("remember what is on my screen", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '24':
+            handle_command("make a note: this is a test note from NOVA", test_mode_active=True, takecommand_func=takecommand)
+        elif choice == '25':
+            handle_command("summarize my recent activity", test_mode_active=True, takecommand_func=takecommand)
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:
