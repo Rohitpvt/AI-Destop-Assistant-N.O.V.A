@@ -66,6 +66,14 @@ Python 3.6+
 5. **Install PyAudio**  
    - Follow the instructions given **[here](https://stackoverflow.com/questions/52283840/i-cant-install-pyaudio-on-windows-how-to-solve-error-microsoft-visual-c-14)**
 
+6. **Configure Environment Variables**
+   - Copy the example environment file:
+     `ash
+     cp .env.example .env
+     ``n   - Edit .env to customize your assistant name, log levels, and directories.
+   - *Note: Do not commit your .env file to version control.*
+
+7. **Run the Assistant**
   - Run the main script:
     ```bash
     python NOVA/nova.py

@@ -3,6 +3,7 @@
 venv/
 ENV/
 env/
+.env
 
 # Python cache
 __pycache__/
@@ -12,9 +13,11 @@ __pycache__/
 
 # Project state & logs
 *.log
+logs/
+data/
+notes/
+screenshots/
 screenshot.png
-notes.txt
-assistant_name.txt
 
 # IDEs
 .vscode/

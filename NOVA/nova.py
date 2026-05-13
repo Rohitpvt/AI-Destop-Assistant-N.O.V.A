@@ -8,7 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-from core.logger import log_event
+from core.logger import log_event, log_info
 from core.tts import speak
 from core.speech import takecommand
 from core.router import handle_command
@@ -80,10 +80,14 @@ if __name__ == "__main__":
 
     if test_mode_active:
         print(f"--- {config.DEFAULT_NAME} Test Mode Active ---")
+        log_info("Starting NOVA in Test Mode")
         run_test_menu()
+        log_info("Exiting NOVA Test Mode")
     else:
         utilities.wishme()
+        log_info("Starting NOVA in Voice Mode")
         while True:
             query = takecommand()
             if not handle_command(query, test_mode_active=False, takecommand_func=takecommand):
                 break
+        log_info("Exiting NOVA Voice Mode")

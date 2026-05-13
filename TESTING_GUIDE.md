@@ -61,4 +61,11 @@ In Test Mode, you can enter **Manual Command Mode** by typing `m`. This allows y
 | No sound output | No audio device | NOVA will fall back to printing responses in the terminal. |
 
 ## 5. Configuration
-You can customize paths (Music folder, App paths, etc.) in `NOVA/config.py`.
+You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NOVA/config.py`. 
+
+### Log Location
+- Logs are stored in: `logs/nova.log`
+- Rotating logs are enabled (keeps last 3 backups).
+
+### Data Location
+- Assistant identity and persistent data are stored in: `data/`
