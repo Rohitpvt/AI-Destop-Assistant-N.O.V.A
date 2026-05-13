@@ -1,0 +1,1 @@
+print("This project has been renamed. Please run: python NOVA/nova.py --test")

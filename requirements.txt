@@ -1,0 +1,13 @@
+pyttsx3~=2.90
+wikipedia~=1.4.0
+PyAutoGUI~=0.9.54
+SpeechRecognition~=3.10.4
+pyjokes==0.6.0
+standard-aifc  # Required for Python 3.13+ compatibility
+audioop-lts    # Required for Python 3.13+ compatibility
+Pillow         # Required for screenshot functionality
+
+# NOTE: PyAudio is required for microphone support.
+# If you encounter errors on Windows, download the appropriate .whl file from:
+# https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+# Or try: pip install pipwin && pipwin install pyaudio
