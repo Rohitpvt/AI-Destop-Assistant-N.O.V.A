@@ -41,6 +41,17 @@ NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
 
+env_path = os.path.join(PROJECT_ROOT, '.env')
+print("--- NOVA CONFIGURATION INITIALIZING ---")
+print(f"PROJECT_ROOT: {PROJECT_ROOT}")
+print(f"Loading .env from: {env_path} (Exists: {os.path.exists(env_path)})")
+print(f"NOVA_LLM_ENABLED: {LLM_ENABLED}")
+print(f"NVIDIA_API_KEY Present: {bool(NVIDIA_API_KEY) and NVIDIA_API_KEY != 'your_actual_nvidia_key_here'}")
+print(f"NVIDIA_BASE_URL: {NVIDIA_BASE_URL}")
+print(f"NVIDIA_MODEL: {NVIDIA_MODEL}")
+print("---------------------------------------")
+
+
 def has_llm_credentials():
     """Returns True if LLM is enabled and a valid API key is provided."""
     return LLM_ENABLED and bool(NVIDIA_API_KEY) and NVIDIA_API_KEY != "your_actual_nvidia_key_here"

@@ -93,21 +93,22 @@ def run_test_menu():
                 handle_command("clear memory", test_mode_active=True, takecommand_func=takecommand)
         elif choice == '13':
             print("--- AI Connection Diagnostic ---")
+            print(f"Config .env Path: {os.path.join(config.PROJECT_ROOT, '.env')}")
             print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")
-            print(f"API Key Present (NVIDIA_API_KEY): {bool(config.NVIDIA_API_KEY)}")
-            print(f"Selected Model (NVIDIA_MODEL): {config.NVIDIA_MODEL}")
-            print(f"Base URL (NVIDIA_BASE_URL): {config.NVIDIA_BASE_URL}")
+            print(f"API Key Present (NVIDIA_API_KEY): {'yes' if (bool(config.NVIDIA_API_KEY) and config.NVIDIA_API_KEY != 'your_actual_nvidia_key_here') else 'no'}")
+            print(f"NVIDIA_BASE_URL: {config.NVIDIA_BASE_URL}")
+            print(f"NVIDIA_MODEL: {config.NVIDIA_MODEL}")
             if config.has_llm_credentials():
                 print(f"Checking connection to {config.NVIDIA_MODEL}...")
                 resp = llm_client.call_llm([{"role": "user", "content": "Say 'Connection Successful'"}])
                 if resp:
-                    print(f"Result: {resp}")
-                    print("API Call: SUCCESS")
+                    resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
+                    print(f"Result: {resp_safe}")
+                    print("Connection Result: SUCCESS")
                 else:
-                    print("Connection Failed.")
-                    print("API Call: FAILED")
+                    print("Connection Result: FAILED")
             else:
-                print("Connection Check Skipped: AI is disabled or NVIDIA_API_KEY is missing in .env")
+                print("Connection Result: SKIPPED (AI disabled or invalid API key)")
         elif choice == '14':
             print("--- AI Classification Diagnostic ---")
             print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")
@@ -197,7 +198,11 @@ def run_test_menu():
                     except:
                         pass
                     resp = intent_classifier.generate_chat_response(cmd, recent_memory)
-                    print(f"\nNOVA Response: {resp}")
+                    if resp:
+                        resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
+                        print(f"\nNOVA Response: {resp_safe}")
+                    else:
+                        print("\nNOVA Response: None (Failed)")
             else:
                 print("General Chat Check Skipped: AI is disabled or NVIDIA_API_KEY is missing in .env")
         elif choice == 'm':

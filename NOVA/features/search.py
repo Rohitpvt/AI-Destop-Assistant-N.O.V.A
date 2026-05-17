@@ -11,12 +11,17 @@ def search_wikipedia(query):
         speak(result)
         print(result)
         log_event(f"wikipedia {query}", "Wikipedia", "Success")
+        return {"success": True, "result": result}
     except wikipedia.exceptions.DisambiguationError:
-        speak("Multiple results found. Please be more specific.")
+        err = "Multiple results found. Please be more specific."
+        speak(err)
         log_event(f"wikipedia {query}", "Wikipedia", "Failure", "Disambiguation")
+        return {"success": False, "result": err}
     except Exception as e:
-        speak(f"I couldn't find anything on Wikipedia for {query}.")
+        err = f"I couldn't find anything on Wikipedia for {query}."
+        speak(err)
         log_event(f"wikipedia {query}", "Wikipedia", "Failure", str(e))
+        return {"success": False, "result": err}
 
 def search_google(query):
     """Performs a Google search."""

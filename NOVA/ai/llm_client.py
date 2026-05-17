@@ -21,7 +21,7 @@ except ImportError:
 
 def get_client():
     """Returns an OpenAI-compatible client configured for NVIDIA's API."""
-    if not OpenAI or not config.NVIDIA_API_KEY:
+    if not OpenAI or not config.has_llm_credentials():
         return None
     try:
         client = OpenAI(

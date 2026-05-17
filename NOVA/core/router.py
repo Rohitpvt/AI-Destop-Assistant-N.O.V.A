@@ -14,13 +14,30 @@ memory_db.initialize_memory()
 def is_looks_like_general_question(query: str) -> bool:
     """Heuristic helper to detect if a command looks like a general question or conversational text."""
     q = query.lower().strip()
-    question_words = ["who", "what", "where", "when", "why", "how", "explain", "tell me", "define", "what is", "who is", "give me", "why does", "tell me about"]
+    
+    # Prefix matches
+    prefixes = ["who is", "what is", "which is", "why", "how", "explain", "tell me about", "define"]
+    for prefix in prefixes:
+        if q.startswith(prefix):
+            return True
+            
+    # Contains matches
+    contains_words = ["best", "recommend"]
+    for word in contains_words:
+        if word in q:
+            return True
+            
+    # Also fallback question words anywhere in string
+    question_words = ["who", "what", "where", "when", "why", "how", "explain", "tell me", "define", "give me", "why does"]
     for word in question_words:
         if q.startswith(word) or f" {word} " in q:
             return True
+            
+    # Word count heuristic
     words = q.split()
     if len(words) >= 3:
         return True
+        
     return False
 
 def check_deterministic_keywords(query, test_mode_active, takecommand_func):
@@ -133,6 +150,11 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
     if config.has_llm_credentials():
         log_info(f"No deterministic keyword match. Attempting AI classification for query: [{query}]")
         try:
+            # Direct general-question heuristic override:
+            if is_looks_like_general_question(query):
+                log_info("Direct heuristic match for general question. Routing to general chat.")
+                return execute_intent("general_chat", None, query, test_mode_active, takecommand_func)
+
             recent_memory = memory_db.get_recent_interactions(5)
             classification = intent_classifier.classify_intent_with_llm(query, recent_memory)
             
@@ -156,7 +178,17 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
         except Exception as e:
             log_info(f"Error during AI routing: {e}. Falling back to default response.")
 
-    # Step 3: Default fallback when LLM is disabled, missing, or fails
+    # Step 3: Check if general question fallback is triggered but LLM is disabled or missing credentials
+    if is_looks_like_general_question(query):
+        response_text = "AI response is currently unavailable. Please check LLM settings."
+        intent = "unknown"
+        success = False
+        speak(response_text)
+        if config.MEMORY_ENABLED:
+            memory_db.save_interaction(query, response_text, intent, success)
+        return True
+
+    # Step 4: Default fallback when LLM is disabled, missing, or fails
     response_text = "No matching keyword found."
     intent = "unknown"
     success = False
@@ -188,8 +220,9 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             response_text = "Told the date."
         elif intent == "wikipedia_search":
             query_text = target if target else query.replace("wikipedia", "").strip()
-            search.search_wikipedia(query_text)
-            response_text = f"Searched Wikipedia for {query_text}."
+            res = search.search_wikipedia(query_text)
+            response_text = res["result"]
+            success = res["success"]
         elif intent == "play_music":
             song_name = target if target else query.replace("play music", "").strip()
             music.play_music(song_name)
@@ -311,7 +344,8 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
                 print(f"[NOVA Chat]: {chat_resp}")
                 response_text = chat_resp
             else:
-                response_text = "LLM failed to generate chat response."
+                response_text = "AI response is currently unavailable. Please check LLM settings."
+                speak("AI response is currently unavailable. Please check LLM settings.")
                 success = False
         elif intent == "exit":
             speak("Going offline. Have a good day!")
