@@ -10,6 +10,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.router import handle_command, get_last_response
 from memory import memory_db
 from gui.worker import CommandWorker
+from core.tts import (
+    speak_response, 
+    speak, 
+    speech_suppressed, 
+    is_speaking_suppressed, 
+    suppress_speaking
+)
 import config
 
 class TestResponseBehavior(unittest.TestCase):
@@ -23,6 +30,9 @@ class TestResponseBehavior(unittest.TestCase):
     def setUp(self):
         # Clear interactions before each test to have clean state
         memory_db.clear_interactions()
+        # Reset thread suppression state
+        suppress_speaking(False)
+        config.VOICE_OUTPUT_ENABLED = True
         
     @patch('core.tts.speak')
     def test_time_command_stores_and_exposes_actual_time(self, mock_speak):
@@ -114,8 +124,9 @@ class TestResponseBehavior(unittest.TestCase):
         self.assertNotEqual(interactions[0][2], "Told the date.")
         self.assertTrue(interactions[0][2].startswith("Today is "))
 
+    @patch('core.tts.speak_response')
     @patch('core.tts.speak')
-    def test_gui_worker_uses_get_last_response_for_chat(self, mock_speak):
+    def test_gui_worker_uses_get_last_response_for_chat(self, mock_speak, mock_speak_response):
         """7. Verify GUI worker uses get_last_response()[\"response\"] for the chat display."""
         worker = CommandWorker("what is the time right now")
         
@@ -134,6 +145,61 @@ class TestResponseBehavior(unittest.TestCase):
         self.assertTrue(emitted_success)
         self.assertTrue(emitted_resp.startswith("The current time is "))
         self.assertNotEqual(emitted_resp, "Told the time.")
+
+    @patch('core.tts.speak')
+    def test_speak_response_bridges_user_facing_responses(self, mock_speak):
+        """8. Verify speak_response speaks final user-facing responses."""
+        speak_response("The current time is 04:07 AM.")
+        mock_speak.assert_called_once_with("The current time is 04:07 AM.")
+
+    @patch('core.tts.speak')
+    def test_speak_response_ignores_log_messages(self, mock_speak):
+        """9. Verify speak_response ignores internal developer log status messages."""
+        speak_response("Told the time.")
+        speak_response("Told the date.")
+        speak_response("Command executed successfully.")
+        mock_speak.assert_not_called()
+
+    @patch('core.tts.speak')
+    def test_speak_response_respects_voice_output_enabled(self, mock_speak):
+        """10. Verify speak_response respects VOICE_OUTPUT_ENABLED configuration."""
+        config.VOICE_OUTPUT_ENABLED = False
+        speak_response("This should not be spoken.")
+        mock_speak.assert_not_called()
+
+    def test_speech_suppression_context_manager(self):
+        """11. Verify speech_suppressed context manager suppresses and restores states correctly."""
+        self.assertFalse(is_speaking_suppressed())
+        
+        with speech_suppressed():
+            self.assertTrue(is_speaking_suppressed())
+            
+        self.assertFalse(is_speaking_suppressed())
+
+        # Verify always restores suppression even on exceptions
+        try:
+            with speech_suppressed():
+                self.assertTrue(is_speaking_suppressed())
+                raise ValueError("Dummy Error")
+        except ValueError:
+            pass
+            
+        self.assertFalse(is_speaking_suppressed())
+
+    @patch('core.tts.speak_response')
+    @patch('core.tts.speak')
+    def test_gui_worker_triggers_speak_response_and_suppresses_internals(self, mock_speak, mock_speak_response):
+        """12. Verify GUI CommandWorker suppresses internal speaking and invokes speak_response exactly once."""
+        worker = CommandWorker("what is the time right now")
+        worker.run()
+        
+        # Verify that speak() itself was suppressed/not called directly by the utility
+        mock_speak.assert_not_called()
+        
+        # Verify that speak_response was invoked exactly once with the final time response
+        mock_speak_response.assert_called_once()
+        args, kwargs = mock_speak_response.call_args
+        self.assertTrue(args[0].startswith("The current time is "))
 
 if __name__ == "__main__":
     unittest.main()

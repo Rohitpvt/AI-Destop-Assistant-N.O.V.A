@@ -36,6 +36,24 @@ def get_system_status() -> dict:
             except:
                 pass
 
+        # TTS Diagnostics
+        tts_enabled = getattr(config, 'VOICE_OUTPUT_ENABLED', True)
+        pyttsx3_status = "Available"
+        try:
+            import pyttsx3
+        except ImportError:
+            pyttsx3_status = "Not Installed"
+            
+        pythoncom_status = "Available"
+        try:
+            import pythoncom
+        except ImportError:
+            pythoncom_status = "Not Installed"
+
+        from core.tts import get_last_tts_error, get_active_voice_info
+        last_err = get_last_tts_error()
+        voice_info = get_active_voice_info()
+
         return {
             "success": True,
             "cpu_percent": cpu_usage,
@@ -44,7 +62,13 @@ def get_system_status() -> dict:
             "disk_percent": disk.percent,
             "battery_percent": battery.percent if battery else None,
             "battery_plugged": battery.power_plugged if battery else None,
-            "active_window": active_window
+            "active_window": active_window,
+            "tts_enabled": tts_enabled,
+            "pyttsx3_status": pyttsx3_status,
+            "pythoncom_status": pythoncom_status,
+            "active_voice_name": voice_info.get("name", "None"),
+            "active_voice_id": voice_info.get("id", "None"),
+            "last_tts_error": last_err
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -63,5 +87,8 @@ def summarize_system_status() -> str:
         summary += f"Your battery is at {status['battery_percent']}% and is {state}. "
 
     summary += f"The current active window is {status['active_window']}."
+    summary += f" Voice output is {'enabled' if status.get('tts_enabled', True) else 'disabled'} (Active Voice: {status.get('active_voice_name', 'None')})."
+    if status.get('last_tts_error'):
+        summary += f" Note: Last speech error was: {status['last_tts_error']}."
     
     return summary

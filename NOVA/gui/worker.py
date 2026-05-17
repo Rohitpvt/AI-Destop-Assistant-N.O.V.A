@@ -42,13 +42,19 @@ class CommandWorker(QThread):
             self.status_update.emit("Thinking...")
             log_info(f"GUI Command Execution: [{self.query}]")
             
-            success = handle_command(self.query, test_mode_active=False, takecommand_func=takecommand)
-            
+            from core.tts import speech_suppressed, speak_response
             from core.router import get_last_response
+            
+            with speech_suppressed():
+                success = handle_command(self.query, test_mode_active=False, takecommand_func=takecommand)
+            
             result = get_last_response()
-            resp = result["response"]
+            resp = result.get("response", "")
             
             self.finished.emit(resp, success)
+            
+            if resp:
+                speak_response(resp)
         except Exception as e:
             err_msg = f"Command execution failed: {e}"
             log_error(f"{err_msg}\n{traceback.format_exc()}")
