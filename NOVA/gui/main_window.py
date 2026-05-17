@@ -123,6 +123,10 @@ class MainWindow(QMainWindow):
             self.submit_command(query)
 
     def submit_command(self, query):
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.append_chat("NOVA", "Please wait until the current command finishes processing.")
+            return
+
         self.append_chat("You", query)
         self.worker = CommandWorker(query)
         self.worker.status_update.connect(self.update_status)
@@ -131,6 +135,12 @@ class MainWindow(QMainWindow):
         self.worker.start()
 
     def handle_voice(self):
+        if hasattr(self, 'voice_worker') and self.voice_worker and self.voice_worker.isRunning():
+            return
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.append_chat("NOVA", "Please wait until the current command finishes processing.")
+            return
+
         self.voice_worker = VoiceWorker()
         self.voice_worker.status_update.connect(self.update_status)
         self.voice_worker.recognized.connect(self.on_voice_recognized)
