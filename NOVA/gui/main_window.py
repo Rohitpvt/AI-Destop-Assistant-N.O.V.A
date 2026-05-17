@@ -208,7 +208,8 @@ class MainWindow(QMainWindow):
     def toggle_wake_mode(self):
         if self.continuous_voice_worker and self.continuous_voice_worker.isRunning():
             self.continuous_voice_worker.stop()
-            self.continuous_voice_worker.wait()
+            self.continuous_voice_worker.wait(2000)
+            self.continuous_voice_worker = None
             self.wake_btn.setText("Start Wake Mode")
             self.update_status("Idle")
         else:
@@ -223,6 +224,7 @@ class MainWindow(QMainWindow):
             self.continuous_voice_worker.error.connect(self.handle_error)
             self.continuous_voice_worker.start()
             self.wake_btn.setText("Stop Wake Mode")
+            self.update_status("Listening...")
 
     @pyqtSlot(str)
     def on_continuous_recognized(self, query):
@@ -353,7 +355,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         if hasattr(self, 'continuous_voice_worker') and self.continuous_voice_worker and self.continuous_voice_worker.isRunning():
             self.continuous_voice_worker.stop()
-            self.continuous_voice_worker.wait()
+            self.continuous_voice_worker.wait(2000)
         if hasattr(self, 'voice_worker') and self.voice_worker and self.voice_worker.isRunning():
             self.voice_worker.wait()
         if hasattr(self, 'worker') and self.worker and self.worker.isRunning():

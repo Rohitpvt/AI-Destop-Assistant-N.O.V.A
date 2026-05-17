@@ -233,7 +233,7 @@ class TestResponseBehavior(unittest.TestCase):
         
         worker.run()
         
-        self.assertIn("nova what is the time", emitted_recognized)
+        self.assertIn("what is the time", emitted_recognized)
         mock_handle_command.assert_called_once_with("what is the time", test_mode_active=False)
         mock_speak_response.assert_called_once()
 
@@ -250,12 +250,16 @@ class TestResponseBehavior(unittest.TestCase):
         ]
         
         worker = ContinuousVoiceWorker()
+        recognized_calls = []
+        worker.recognized.connect(recognized_calls.append)
         worker.recognized.connect(lambda _: worker.stop())
         
         worker.run()
         
         # Verify handle_command was called for the second success item
         mock_handle_command.assert_called_once()
+        self.assertEqual(len(recognized_calls), 1)
+        self.assertEqual(recognized_calls[0], "what is the date today")
 
     def test_continuous_voice_worker_respects_stop(self):
         """15. Verify calling .stop() successfully terminates the run loop."""
@@ -296,6 +300,29 @@ class TestResponseBehavior(unittest.TestCase):
         win.toggle_wake_mode()
         self.assertEqual(win.wake_btn.text(), "Start Wake Mode")
         mock_worker.stop.assert_called_once()
+        self.assertIsNone(win.continuous_voice_worker)
+
+    def test_clean_query(self):
+        """17. Verify that clean_query strips wake word prefixes and leading punctuation correctly."""
+        from gui.worker import ContinuousVoiceWorker
+        worker = ContinuousVoiceWorker()
+        
+        # Test prefixes
+        self.assertEqual(worker.clean_query("Nova what is the time"), "what is the time")
+        self.assertEqual(worker.clean_query("Hey Nova date today"), "date today")
+        self.assertEqual(worker.clean_query("ok nova read my screen"), "read my screen")
+        self.assertEqual(worker.clean_query("okay nova, status"), "status")
+        
+        # Test case-insensitivity
+        self.assertEqual(worker.clean_query("hEy NoVa, date today"), "date today")
+        self.assertEqual(worker.clean_query("OKAY NOVA read my screen"), "read my screen")
+        
+        # Test direct mode (no prefix)
+        self.assertEqual(worker.clean_query("what is the time right now"), "what is the time right now")
+        
+        # Test empty or none
+        self.assertEqual(worker.clean_query(""), "")
+        self.assertEqual(worker.clean_query(None), "")
 
 if __name__ == "__main__":
     unittest.main()
