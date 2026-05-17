@@ -36,6 +36,8 @@ def build():
         "--hidden-import", "win32com",
         "--hidden-import", "win32com.client",
         "--hidden-import", "pyaudio",
+        "--hidden-import", "pyaudiowpatch",
+        "--hidden-import", "_portaudiowpatch",
         "--hidden-import", "PyQt5.sip",
         "--hidden-import", "pygetwindow",
         "--hidden-import", "pyautogui",
