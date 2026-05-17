@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(config.GUI_WINDOW_TITLE)
-        self.resize(config.GUI_WIDTH, config.GUI_HEIGHT)
+        self.resize(1000, 720) # Modern dashboard width and height
         self.setStyleSheet(DARK_STYLE)
         
         # Register the bridge with the safety module
@@ -36,84 +36,140 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        
+        # Main layout with outer margins (16px) and spacing (14px)
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(14)
 
-        # --- Left Panel: Chat ---
+        # --- Left Panel: Chat (70% stretch) ---
         left_panel = QFrame()
         left_panel.setObjectName("ChatPanel")
         left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(16, 16, 16, 16)
+        left_layout.setSpacing(12)
 
-        self.status_label = QLabel("Status: Idle")
+        self.header_title = QLabel("NOVA")
+        self.header_title.setObjectName("HeaderTitle")
+        left_layout.addWidget(self.header_title)
+
+        self.status_label = QLabel("Status: <span style='color: #20E6A8;'>Idle</span>")
         self.status_label.setObjectName("StatusLabel")
         left_layout.addWidget(self.status_label)
 
+        divider = QFrame()
+        divider.setObjectName("HeaderDivider")
+        left_layout.addWidget(divider)
+
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
+        self.chat_display.setObjectName("ChatDisplay")
         left_layout.addWidget(self.chat_display)
 
+        # Input row with spacing (10px)
         input_layout = QHBoxLayout()
+        input_layout.setSpacing(10)
+        
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Type a command...")
+        self.input_field.setObjectName("CommandInput")
+        self.input_field.setPlaceholderText("Ask NOVA anything...")
         self.input_field.returnPressed.connect(self.handle_send)
         input_layout.addWidget(self.input_field)
 
         self.send_btn = QPushButton("Send")
+        self.send_btn.setObjectName("SendBtn")
+        self.send_btn.setToolTip("Send command")
         self.send_btn.clicked.connect(self.handle_send)
         input_layout.addWidget(self.send_btn)
 
-        self.voice_btn = QPushButton("🎤")
+        self.voice_btn = QPushButton("🎙")
         self.voice_btn.setObjectName("VoiceBtn")
-        self.voice_btn.setToolTip("Voice Listen")
+        self.voice_btn.setToolTip("Voice input")
         self.voice_btn.clicked.connect(self.handle_voice)
         input_layout.addWidget(self.voice_btn)
 
         left_layout.addLayout(input_layout)
-        main_layout.addWidget(left_panel, 3)
+        main_layout.addWidget(left_panel, 7)
 
-        # --- Right Panel ---
+        # --- Right Panel: Sidebar (30% stretch) ---
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(14)
 
-        actions_group = QGroupBox("Quick Actions")
-        actions_layout = QVBoxLayout(actions_group)
+        # A. Quick Actions card
+        actions_card = QFrame()
+        actions_card.setObjectName("QuickActionsCard")
+        actions_layout = QVBoxLayout(actions_card)
+        actions_layout.setContentsMargins(16, 16, 16, 16)
+        actions_layout.setSpacing(12)
+        
+        actions_title = QLabel("Quick Actions")
+        actions_title.setObjectName("CardTitle")
+        actions_layout.addWidget(actions_title)
         
         btn_status = QPushButton("System Status")
+        btn_status.setObjectName("PrimaryActionBtn")
         btn_status.clicked.connect(lambda: self.submit_command("system status"))
         actions_layout.addWidget(btn_status)
 
         btn_screen = QPushButton("Read Screen")
+        btn_screen.setObjectName("SecondaryActionBtn")
         btn_screen.clicked.connect(lambda: self.submit_command("read my screen"))
         actions_layout.addWidget(btn_screen)
 
         btn_wake = QPushButton("Start Wake Mode")
+        btn_wake.setObjectName("SecondaryActionBtn")
         btn_wake.clicked.connect(self.toggle_wake_mode)
         self.wake_btn = btn_wake
         actions_layout.addWidget(btn_wake)
 
-        right_layout.addWidget(actions_group)
+        right_layout.addWidget(actions_card)
 
+        # B. Recent Memory card
         if config.GUI_SHOW_MEMORY_PANEL:
-            memory_group = QGroupBox("Recent Memory")
-            memory_layout = QVBoxLayout(memory_group)
-            self.memory_display = QTextEdit()
-            self.memory_display.setReadOnly(True)
-            self.memory_display.setObjectName("MemoryPreview")
-            memory_layout.addWidget(self.memory_display)
-            right_layout.addWidget(memory_group, 1)
+            memory_card = QFrame()
+            memory_card.setObjectName("MemoryCard")
+            self.memory_layout = QVBoxLayout(memory_card)
+            self.memory_layout.setContentsMargins(16, 16, 16, 16)
+            self.memory_layout.setSpacing(10)
+            
+            memory_title = QLabel("Recent Memory")
+            memory_title.setObjectName("CardTitle")
+            self.memory_layout.addWidget(memory_title)
+            
+            # The actual previews (MemoryMiniCards) will be placed inside this layout in update_previews
+            right_layout.addWidget(memory_card, 1)
 
+        # C. Live Logs card
         if config.GUI_SHOW_LOG_PANEL:
-            log_group = QGroupBox("Live Logs")
-            log_layout = QVBoxLayout(log_group)
+            logs_card = QFrame()
+            logs_card.setObjectName("LogsCard")
+            logs_layout = QVBoxLayout(logs_card)
+            logs_layout.setContentsMargins(16, 16, 16, 16)
+            logs_layout.setSpacing(10)
+            
+            logs_title = QLabel("Live Logs")
+            logs_title.setObjectName("CardTitle")
+            logs_layout.addWidget(logs_title)
+            
             self.log_display = QTextEdit()
             self.log_display.setReadOnly(True)
             self.log_display.setObjectName("LogPreview")
-            log_layout.addWidget(self.log_display)
-            right_layout.addWidget(log_group, 1)
+            logs_layout.addWidget(self.log_display)
+            
+            right_layout.addWidget(logs_card, 1)
 
-        main_layout.addWidget(right_panel, 2)
+        main_layout.addWidget(right_panel, 3)
 
     def append_chat(self, sender, message):
-        self.chat_display.append(f"<b>{sender}:</b> {message}")
+        if sender == "You":
+            html = f"<div style='margin-bottom: 12px;'><span style='color: #E6EDF3; font-weight: bold;'>You:</span> <span style='color: #B8C0CC;'>{message}</span></div>"
+        elif sender == "NOVA":
+            html = f"<div style='margin-bottom: 12px;'><span style='color: #20D9FF; font-weight: bold;'>NOVA:</span> <span style='color: #E6EDF3;'>{message}</span></div>"
+        else: # ERROR or other status reporting
+            html = f"<div style='margin-bottom: 12px;'><span style='color: #FF4A4A; font-weight: bold;'>{sender}:</span> <span style='color: #FF8888;'>{message}</span></div>"
+        self.chat_display.append(html)
         self.chat_display.moveCursor(QTextCursor.End)
 
     def handle_send(self):
@@ -162,7 +218,8 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def update_status(self, status):
-        self.status_label.setText(f"Status: {status}")
+        color = "#20E6A8" if status.lower() == "idle" else "#20D9FF"
+        self.status_label.setText(f"Status: <span style='color: {color};'>{status}</span>")
 
     @pyqtSlot(str)
     def on_voice_recognized(self, query):
@@ -185,20 +242,62 @@ class MainWindow(QMainWindow):
         self.update_previews()
 
     def update_previews(self):
-        interactions = memory_db.get_recent_interactions(5)
-        memory_text = ""
-        for _, cmd, resp, _ in reversed(interactions):
-            memory_text += f"> {cmd}\n< {resp[:50]}...\n\n"
-        if hasattr(self, 'memory_display'):
-            self.memory_display.setPlainText(memory_text)
-
-        try:
-            if os.path.exists(config.LOG_FILE):
-                with open(config.LOG_FILE, "r") as f:
-                    lines = f.readlines()[-20:]
-                    self.log_display.setPlainText("".join(lines))
-        except:
-            pass
+        # Update Memory Mini-Cards
+        if hasattr(self, 'memory_layout'):
+            # Clear previous items (keeping the title label)
+            for i in reversed(range(self.memory_layout.count())):
+                widget = self.memory_layout.itemAt(i).widget()
+                if widget and widget.objectName() != "CardTitle":
+                    widget.setParent(None)
+                    widget.deleteLater()
+            
+            # Fetch and render the top 2 recent interactions as mini-cards
+            interactions = memory_db.get_recent_interactions(2)
+            if interactions:
+                for _, cmd, resp, _ in reversed(interactions):
+                    card = QFrame()
+                    card.setObjectName("MemoryMiniCard")
+                    card_layout = QVBoxLayout(card)
+                    card_layout.setContentsMargins(10, 10, 10, 10)
+                    card_layout.setSpacing(4)
+                    
+                    cmd_label = QLabel(f"<b>Query:</b> {cmd}")
+                    cmd_label.setWordWrap(True)
+                    cmd_label.setStyleSheet("color: #E6EDF3; font-size: 8.5pt; background: transparent; border: none;")
+                    
+                    short_resp = resp[:90] + "..." if len(resp) > 90 else resp
+                    resp_label = QLabel(f"<b>NOVA:</b> {short_resp}")
+                    resp_label.setWordWrap(True)
+                    resp_label.setStyleSheet("color: #B8C0CC; font-size: 8.5pt; background: transparent; border: none;")
+                    
+                    card_layout.addWidget(cmd_label)
+                    card_layout.addWidget(resp_label)
+                    self.memory_layout.addWidget(card)
+            else:
+                empty_label = QLabel("No recent memory yet.")
+                empty_label.setStyleSheet("color: #8A93A3; font-style: italic; font-size: 9pt; background: transparent; border: none;")
+                empty_label.setAlignment(Qt.AlignCenter)
+                self.memory_layout.addWidget(empty_label)
+        
+        # Update Live Logs terminal box
+        if hasattr(self, 'log_display'):
+            try:
+                if os.path.exists(config.LOG_FILE):
+                    with open(config.LOG_FILE, "r") as f:
+                        lines = f.readlines()[-15:]
+                        cleaned_lines = []
+                        for line in lines:
+                            parts = line.split(" - ")
+                            if len(parts) >= 3:
+                                time_str = parts[0].split(" ")[1].split(",")[0]
+                                msg = " - ".join(parts[2:]).strip()
+                                cleaned_lines.append(f"[{time_str}] {msg}")
+                            else:
+                                cleaned_lines.append(line.strip())
+                        self.log_display.setPlainText("\n".join(cleaned_lines))
+                        self.log_display.moveCursor(QTextCursor.End)
+            except:
+                pass
 
     @pyqtSlot(str)
     def show_confirmation_dialog(self, action_description):

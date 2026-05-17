@@ -1,99 +1,180 @@
 DARK_STYLE = """
 QMainWindow {
-    background-color: #121212;
+    background-color: #0B111C;
 }
 
 QWidget {
-    color: #E0E0E0;
+    color: #E6EDF3;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 10pt;
 }
 
+/* Left Chat Panel */
 QFrame#ChatPanel {
-    background-color: #1E1E1E;
-    border-radius: 10px;
+    background-color: #111622;
+    border: 1px solid #1E2E44;
+    border-radius: 16px;
 }
 
-QScrollArea {
-    border: none;
+/* Chat display area */
+QTextEdit#ChatDisplay {
     background-color: transparent;
+    border: none;
+    font-size: 10pt;
+    color: #E6EDF3;
 }
 
-QLineEdit {
-    background-color: #2D2D2D;
-    border: 1px solid #3D3D3D;
-    border-radius: 5px;
-    padding: 8px;
-    color: white;
-}
-
-QLineEdit:focus {
-    border: 1px solid #00A8FF;
-}
-
-QPushButton {
-    background-color: #00A8FF;
-    color: white;
-    border-radius: 5px;
-    padding: 8px 15px;
+/* Header section label styling */
+QLabel#HeaderTitle {
+    font-size: 24pt;
     font-weight: bold;
-}
-
-QPushButton:hover {
-    background-color: #0097E6;
-}
-
-QPushButton:pressed {
-    background-color: #0084CC;
-}
-
-QPushButton#VoiceBtn {
-    background-color: #2D2D2D;
-    border: 1px solid #3D3D3D;
-}
-
-QPushButton#VoiceBtn:hover {
-    background-color: #3D3D3D;
+    color: white;
+    background: transparent;
+    border: none;
 }
 
 QLabel#StatusLabel {
-    color: #00A8FF;
+    font-size: 11pt;
     font-weight: bold;
+    background: transparent;
+    border: none;
 }
 
-QTextEdit#LogPreview, QTextEdit#MemoryPreview {
-    background-color: #181818;
-    border: 1px solid #2D2D2D;
-    border-radius: 5px;
-    color: #AAAAAA;
+QFrame#HeaderDivider {
+    border: none;
+    background-color: #1E2E44;
+    max-height: 1px;
+    min-height: 1px;
+}
+
+/* Input Area styling */
+QLineEdit#CommandInput {
+    background-color: #0D111A;
+    border: 1.5px solid #24445A;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #E6EDF3;
+    font-size: 10pt;
+}
+
+QLineEdit#CommandInput:focus {
+    border: 1.5px solid #20D9FF;
+    background-color: #0F1522;
+}
+
+QPushButton#SendBtn {
+    background-color: #172535;
+    border: 1.5px solid #24445A;
+    border-radius: 8px;
+    color: #20D9FF;
+    font-weight: bold;
+    padding: 8px 18px;
+    font-size: 9.5pt;
+}
+
+QPushButton#SendBtn:hover {
+    background-color: #1A314A;
+    border-color: #20D9FF;
+}
+
+QPushButton#VoiceBtn {
+    background-color: #172535;
+    border: 1.5px solid #20D9FF;
+    border-radius: 8px;
+    color: #20D9FF;
+    font-weight: bold;
+    padding: 8px 12px;
+    font-size: 14pt;
+}
+
+QPushButton#VoiceBtn:hover {
+    background-color: #1A314A;
+    border-color: #36E0FF;
+}
+
+/* Right Sidebar Cards */
+QFrame#QuickActionsCard, QFrame#MemoryCard, QFrame#LogsCard {
+    background-color: #111622;
+    border: 1px solid #1E2E44;
+    border-radius: 14px;
+}
+
+QLabel#CardTitle {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #E6EDF3;
+    background: transparent;
+    border: none;
+    margin-bottom: 6px;
+}
+
+/* Card Buttons */
+QPushButton#PrimaryActionBtn {
+    background-color: rgba(32, 217, 255, 0.08);
+    border: 1.5px solid #20D9FF;
+    border-radius: 8px;
+    color: #20D9FF;
+    font-weight: bold;
+    padding: 9px 15px;
+    font-size: 9.5pt;
+}
+
+QPushButton#PrimaryActionBtn:hover {
+    background-color: rgba(32, 217, 255, 0.16);
+    border-color: #36E0FF;
+    color: #36E0FF;
+}
+
+QPushButton#SecondaryActionBtn {
+    background-color: transparent;
+    border: 1.5px solid #24445A;
+    border-radius: 8px;
+    color: #8A93A3;
+    font-weight: bold;
+    padding: 9px 15px;
+    font-size: 9.5pt;
+}
+
+QPushButton#SecondaryActionBtn:hover {
+    border-color: #20D9FF;
+    color: #20D9FF;
+    background-color: rgba(32, 217, 255, 0.05);
+}
+
+/* Memory Cards */
+QFrame#MemoryMiniCard {
+    background-color: rgba(32, 40, 60, 0.35);
+    border: 1px solid #1E2E44;
+    border-radius: 8px;
+}
+
+/* Live Logs Console */
+QTextEdit#LogPreview {
+    background-color: #080D16;
+    border: 1px solid #1A283C;
+    border-radius: 6px;
+    color: #8A93A3;
     font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 9pt;
+    font-size: 8.5pt;
+    padding: 6px;
 }
 
-QGroupBox {
-    font-weight: bold;
-    border: 1px solid #2D2D2D;
-    margin-top: 1.1em;
-    padding-top: 0.5em;
-}
-
-QGroupBox::title {
-    subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 3px 0 3px;
-}
-
+/* ScrollBars */
 QScrollBar:vertical {
     border: none;
-    background: #1E1E1E;
-    width: 8px;
+    background: transparent;
+    width: 6px;
     margin: 0px;
 }
 
 QScrollBar::handle:vertical {
-    background: #3D3D3D;
+    background: #1E2E44;
     min-height: 20px;
-    border-radius: 4px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #20D9FF;
 }
 
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
