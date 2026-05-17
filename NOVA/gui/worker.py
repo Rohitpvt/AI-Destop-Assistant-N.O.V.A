@@ -44,9 +44,9 @@ class CommandWorker(QThread):
             
             success = handle_command(self.query, test_mode_active=False, takecommand_func=takecommand)
             
-            from memory import memory_db
-            interactions = memory_db.get_recent_interactions(1)
-            resp = interactions[0][2] if interactions else "Command processed."
+            from core.router import get_last_response
+            result = get_last_response()
+            resp = result["response"]
             
             self.finished.emit(resp, success)
         except Exception as e:

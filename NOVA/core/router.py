@@ -11,6 +11,21 @@ import logging
 # Initialize memory on import
 memory_db.initialize_memory()
 
+# Accessor cache for PyQt GUI and other external runners
+LAST_RESPONSE_TEXT = ""
+LAST_INTENT = "unknown"
+LAST_SUCCESS = False
+LAST_LOG_MESSAGE = ""
+
+def get_last_response():
+    global LAST_RESPONSE_TEXT, LAST_INTENT, LAST_SUCCESS, LAST_LOG_MESSAGE
+    return {
+        "response": LAST_RESPONSE_TEXT,
+        "intent": LAST_INTENT,
+        "success": LAST_SUCCESS,
+        "log_message": LAST_LOG_MESSAGE,
+    }
+
 def is_looks_like_general_question(query: str) -> bool:
     """Heuristic helper to detect if a command looks like a general question or conversational text."""
     q = query.lower().strip()
@@ -138,6 +153,7 @@ def check_deterministic_keywords(query, test_mode_active, takecommand_func):
 
 def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool:
     """Routes the query to the appropriate feature. Returns False if assistant should exit."""
+    global LAST_RESPONSE_TEXT, LAST_INTENT, LAST_SUCCESS, LAST_LOG_MESSAGE
     if not query:
         return True
 
@@ -191,6 +207,12 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
         speak(response_text)
         if config.MEMORY_ENABLED:
             memory_db.save_interaction(query, response_text, intent, success)
+            
+        # Update Cache
+        LAST_RESPONSE_TEXT = response_text
+        LAST_INTENT = intent
+        LAST_SUCCESS = success
+        LAST_LOG_MESSAGE = f"General question fallback: {response_text}"
         return True
 
     # Step 4: Default fallback when LLM is disabled, missing, or fails
@@ -201,6 +223,12 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
     
     if config.MEMORY_ENABLED:
         memory_db.save_interaction(query, response_text, intent, success)
+        
+    # Update Cache
+    LAST_RESPONSE_TEXT = "I am not sure how to help with that."
+    LAST_INTENT = intent
+    LAST_SUCCESS = success
+    LAST_LOG_MESSAGE = "No matching keyword found."
     
     return True
 
@@ -370,9 +398,69 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
         response_text = f"Execution error: {str(e)}"
         log_event(query, intent, "Failure", str(e))
 
+    # Determine log message
+    log_msg = f"Executed {intent}."
+    if intent == "time":
+        log_msg = "Told the time."
+    elif intent == "date":
+        log_msg = "Told the date."
+    elif intent == "wikipedia_search":
+        log_msg = f"Wikipedia search for {target or query}."
+    elif intent == "play_music":
+        log_msg = f"Playing music: {target or query}."
+    elif intent == "open_website":
+        log_msg = f"Opening website: {target or 'google.com'}."
+    elif intent == "google_search":
+        log_msg = f"Searching Google for {target or query}."
+    elif intent == "open_app":
+        log_msg = f"Opening app: {target or query}."
+    elif intent == "screenshot":
+        log_msg = "Took a screenshot."
+    elif intent == "joke":
+        log_msg = "Told a joke."
+    elif intent == "take_note":
+        log_msg = "Saved a note."
+    elif intent == "remember_name":
+        log_msg = f"Remembered user name."
+    elif intent == "recall_name":
+        log_msg = "Recalled user name."
+    elif intent == "show_memory":
+        log_msg = "Displayed interaction history."
+    elif intent == "clear_memory":
+        log_msg = "Interaction history cleared."
+    elif intent == "greeting":
+        log_msg = "Greeted user."
+    elif intent == "screen_read":
+        log_msg = "Screen reading processed."
+    elif intent == "system_status":
+        log_msg = "Fetched system status."
+    elif intent == "automation_type_text":
+        log_msg = f"Typed text."
+    elif intent == "automation_paste_text":
+        log_msg = f"Pasted text."
+    elif intent == "automation_copy_clipboard":
+        log_msg = "Copied to clipboard."
+    elif intent == "automation_hotkey":
+        log_msg = f"Pressed hotkey."
+    elif intent == "automation_mouse_move":
+        log_msg = "Moved mouse."
+    elif intent == "automation_click":
+        log_msg = "Clicked mouse."
+    elif intent == "general_chat":
+        log_msg = "Generated general chat response."
+    elif intent == "exit":
+        log_msg = "Going offline."
+
     # Save to memory
     if config.MEMORY_ENABLED:
         memory_db.save_interaction(query, response_text, intent, success)
+    
+    # Update globals
+    global LAST_RESPONSE_TEXT, LAST_INTENT, LAST_SUCCESS, LAST_LOG_MESSAGE
+    LAST_RESPONSE_TEXT = response_text
+    LAST_INTENT = intent
+    LAST_SUCCESS = success
+    LAST_LOG_MESSAGE = log_msg
     
     return should_continue
 
