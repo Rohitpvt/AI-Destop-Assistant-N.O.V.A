@@ -11,29 +11,161 @@ import logging
 # Initialize memory on import
 memory_db.initialize_memory()
 
+def is_looks_like_general_question(query: str) -> bool:
+    """Heuristic helper to detect if a command looks like a general question or conversational text."""
+    q = query.lower().strip()
+    question_words = ["who", "what", "where", "when", "why", "how", "explain", "tell me", "define", "what is", "who is", "give me", "why does", "tell me about"]
+    for word in question_words:
+        if q.startswith(word) or f" {word} " in q:
+            return True
+    words = q.split()
+    if len(words) >= 3:
+        return True
+    return False
+
+def check_deterministic_keywords(query, test_mode_active, takecommand_func):
+    """Checks for deterministic commands. Returns (matched, should_continue)."""
+    q = query.lower().strip()
+    
+    # Check for skill keywords first
+    if "summarize my screen and save it" in q or "read this screen and make a note" in q or "save screen summary" in q:
+        return True, execute_intent("skill_summarize_screen_to_note", None, query, test_mode_active, takecommand_func)
+    if "remember what is on my screen" in q or "save this screen context" in q:
+        return True, execute_intent("skill_remember_screen_context", None, query, test_mode_active, takecommand_func)
+    if "make a note" in q or "create note" in q:
+        target_text = query.replace("make a note", "").replace("create note", "").replace(":", "").strip()
+        return True, execute_intent("skill_create_note", target_text, query, test_mode_active, takecommand_func)
+    if "summarize my recent activity" in q or "save my recent activity as a note" in q:
+        return True, execute_intent("skill_summarize_memory_to_note", None, query, test_mode_active, takecommand_func)
+    
+    if "time" in q:
+        return True, execute_intent("time", None, query, test_mode_active, takecommand_func)
+    if "date" in q:
+        return True, execute_intent("date", None, query, test_mode_active, takecommand_func)
+    if "system status" in q or "check my system" in q or "cpu usage" in q or "ram usage" in q:
+        return True, execute_intent("system_status", None, query, test_mode_active, takecommand_func)
+    if "type this" in q:
+        target_text = query.replace("type this", "").replace(":", "").strip()
+        return True, execute_intent("automation_type_text", target_text, query, test_mode_active, takecommand_func)
+    if "paste this" in q:
+        target_text = query.replace("paste this", "").replace(":", "").strip()
+        return True, execute_intent("automation_paste_text", target_text, query, test_mode_active, takecommand_func)
+    if "press ctrl c" in q:
+        return True, execute_intent("automation_hotkey", "ctrl c", query, test_mode_active, takecommand_func)
+    if "press ctrl v" in q:
+        return True, execute_intent("automation_hotkey", "ctrl v", query, test_mode_active, takecommand_func)
+    if "click here" in q:
+        return True, execute_intent("automation_click", None, query, test_mode_active, takecommand_func)
+    if "wikipedia" in q:
+        target_text = query.replace("wikipedia", "").strip()
+        return True, execute_intent("wikipedia_search", target_text, query, test_mode_active, takecommand_func)
+    if "play music" in q:
+        song_name = query.replace("play music", "").strip()
+        return True, execute_intent("play_music", song_name, query, test_mode_active, takecommand_func)
+    
+    # YouTube specific search helper
+    if ("search" in q and ("in youtube" in q or "on youtube" in q or "youtube search" in q)) or "search carryminati in youtube" in q:
+        search_term = query
+        for phrase in ["now search", "search", "in youtube", "on youtube", "youtube"]:
+            search_term = search_term.replace(phrase, "")
+        search_term = search_term.replace(":", "").strip()
+        
+        url = f"https://www.youtube.com/results?search_query={search_term}"
+        speak(f"Searching YouTube for {search_term}.")
+        browser.open_website(url, query)
+        response_text = f"Searching YouTube for {search_term}."
+        if config.MEMORY_ENABLED:
+            memory_db.save_interaction(query, response_text, "open_website", True)
+        return True, True
+
+    if "open youtube" in q:
+        return True, execute_intent("open_website", "youtube.com", query, test_mode_active, takecommand_func)
+    if "open google" in q:
+        return True, execute_intent("open_website", "google.com", query, test_mode_active, takecommand_func)
+    if "search google for" in q:
+        search_term = query.replace("search google for", "").strip()
+        return True, execute_intent("google_search", search_term, query, test_mode_active, takecommand_func)
+    if "change your name" in q:
+        return True, execute_intent("identity", None, query, test_mode_active, takecommand_func)
+    if "screenshot" in q:
+        return True, execute_intent("screenshot", None, query, test_mode_active, takecommand_func)
+    if "look at my screen" in q or "read my screen" in q or "what is on my screen" in q or "analyze screen" in q:
+        return True, execute_intent("screen_read", None, query, test_mode_active, takecommand_func)
+    if "tell me a joke" in q:
+        return True, execute_intent("joke", None, query, test_mode_active, takecommand_func)
+    if "open" in q:
+        app_name = query.replace("open", "").strip()
+        return True, execute_intent("open_app", app_name, query, test_mode_active, takecommand_func)
+    if "take note" in q or "write down" in q:
+        return True, execute_intent("take_note", None, query, test_mode_active, takecommand_func)
+    
+    if "shutdown" in q:
+        speak("Are you sure you want to shut down the system?")
+        ans = takecommand_func(force_text=test_mode_active)
+        if ans and "yes" in ans.lower():
+            speak("Shutting down the system, goodbye!")
+            memory_db.save_interaction(query, "Shutting down.", "exit", True)
+            return True, False
+        else:
+            speak("Shutdown cancelled.")
+            if config.MEMORY_ENABLED:
+                memory_db.save_interaction(query, "Shutdown cancelled.", "exit", True)
+            return True, True
+            
+    if "offline" in q or "exit" in q:
+        speak("Going offline. Have a good day!")
+        memory_db.save_interaction(query, "Going offline.", "exit", True)
+        return True, False
+        
+    return False, True
+
 def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool:
     """Routes the query to the appropriate feature. Returns False if assistant should exit."""
     if not query:
         return True
 
-    # Step 1: Try AI Intent Classification if enabled
+    # Step 1: Check for deterministic commands first (fast path)
+    matched_deterministic, should_continue = check_deterministic_keywords(query, test_mode_active, takecommand_func)
+    if matched_deterministic:
+        return should_continue
+
+    # Step 2: Try AI Intent Classification if enabled and credentials exist
     if config.has_llm_credentials():
-        log_info(f"Attempting AI classification for query: [{query}]")
-        recent_memory = memory_db.get_recent_interactions(5)
-        classification = intent_classifier.classify_intent_with_llm(query, recent_memory)
-        
-        intent = classification.get("intent", "unknown")
-        confidence = classification.get("confidence", 0.0)
-        target = classification.get("target")
+        log_info(f"No deterministic keyword match. Attempting AI classification for query: [{query}]")
+        try:
+            recent_memory = memory_db.get_recent_interactions(5)
+            classification = intent_classifier.classify_intent_with_llm(query, recent_memory)
+            
+            intent = classification.get("intent", "unknown")
+            confidence = classification.get("confidence", 0.0)
+            target = classification.get("target")
 
-        if confidence > 0.7 and intent != "unknown":
-            log_info(f"AI Classification Success: [{intent}] with confidence [{confidence}]")
-            return execute_intent(intent, target, query, test_mode_active, takecommand_func)
-        else:
-            log_info(f"AI Classification low confidence ({confidence}) or unknown intent. Falling back to keyword router.")
+            log_info(f"AI Classification: intent=[{intent}], confidence=[{confidence}], target=[{target}]")
 
-    # Step 2: Fallback to Keyword Router
-    return handle_keyword_routing(query, test_mode_active, takecommand_func)
+            if intent == "exit":
+                return execute_intent(intent, target, query, test_mode_active, takecommand_func)
+            elif intent == "general_chat":
+                log_info("Routing query to general chat response.")
+                return execute_intent("general_chat", target, query, test_mode_active, takecommand_func)
+            elif intent != "unknown" and confidence > 0.6:
+                log_info(f"Routing to safe mapped intent: [{intent}]")
+                return execute_intent(intent, target, query, test_mode_active, takecommand_func)
+            elif is_looks_like_general_question(query) or intent == "unknown":
+                log_info("Unclassified query looks like general question. Routing to general chat.")
+                return execute_intent("general_chat", target, query, test_mode_active, takecommand_func)
+        except Exception as e:
+            log_info(f"Error during AI routing: {e}. Falling back to default response.")
+
+    # Step 3: Default fallback when LLM is disabled, missing, or fails
+    response_text = "No matching keyword found."
+    intent = "unknown"
+    success = False
+    speak("I am not sure how to help with that.")
+    
+    if config.MEMORY_ENABLED:
+        memory_db.save_interaction(query, response_text, intent, success)
+    
+    return True
 
 def execute_intent(intent, target, query, test_mode_active, takecommand_func) -> bool:
     """Executes a specific intent mapped from the AI Brain."""
@@ -47,8 +179,6 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             res = skill_manager.run_skill(intent, target, query, test_mode_active, takecommand_func)
             response_text = res.get("summary") or res.get("message") or "Skill completed."
             success = res["success"]
-            # Skills that save to memory should be handled here if needed, 
-            # but currently skill_manager handles its own specific storage.
             
         elif intent == "time":
             utilities.time()
@@ -205,154 +335,17 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
 
 def handle_keyword_routing(query, test_mode_active, takecommand_func) -> bool:
     """Fallback keyword-based routing logic."""
-    response_text = ""
+    matched_deterministic, should_continue = check_deterministic_keywords(query, test_mode_active, takecommand_func)
+    if matched_deterministic:
+        return should_continue
+        
+    response_text = "No matching keyword found."
     intent = "unknown"
-    success = True
-
-    # Check for skill keywords first
-    if "summarize my screen and save it" in query or "read this screen and make a note" in query or "save screen summary" in query:
-        intent = "skill_summarize_screen_to_note"
-        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
-        response_text = res.get("summary") or "Skill completed."
-        success = res["success"]
-    elif "remember what is on my screen" in query or "save this screen context" in query:
-        intent = "skill_remember_screen_context"
-        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
-        response_text = res.get("summary") or "Skill completed."
-        success = res["success"]
-    elif "make a note" in query or "create note" in query:
-        intent = "skill_create_note"
-        text = query.replace("make a note", "").replace("create note", "").replace(":", "").strip()
-        res = skill_manager.run_skill(intent, text, query, test_mode_active, takecommand_func)
-        response_text = res.get("message") or "Note saved."
-        success = res["success"]
-    elif "summarize my recent activity" in query or "save my recent activity as a note" in query:
-        intent = "skill_summarize_memory_to_note"
-        res = skill_manager.run_skill(intent, None, query, test_mode_active, takecommand_func)
-        response_text = res.get("summary") or "Skill completed."
-        success = res["success"]
+    success = False
+    speak("I am not sure how to help with that.")
     
-    elif "time" in query:
-        intent = "time"
-        utilities.time()
-        response_text = "Told the time."
-    elif "date" in query:
-        intent = "date"
-        utilities.date()
-        response_text = "Told the date."
-    elif "system status" in query or "check my system" in query or "cpu usage" in query or "ram usage" in query:
-        intent = "system_status"
-        summary = system_monitor.summarize_system_status()
-        speak(summary)
-        print(f"[System Status]: {summary}")
-        response_text = summary
-    elif "type this" in query:
-        intent = "automation_type_text"
-        text = query.replace("type this", "").replace(":", "").strip()
-        res = desktop_controller.type_text(text, test_mode_active, takecommand_func)
-        response_text = f"Typed: {text}" if res["success"] else "Typing failed."
-        success = res["success"]
-    elif "paste this" in query:
-        intent = "automation_paste_text"
-        text = query.replace("paste this", "").replace(":", "").strip()
-        res = desktop_controller.paste_text(text, test_mode_active, takecommand_func)
-        response_text = f"Pasted: {text}" if res["success"] else "Pasting failed."
-        success = res["success"]
-    elif "press ctrl c" in query:
-        intent = "automation_hotkey"
-        res = desktop_controller.press_hotkey(["ctrl", "c"], test_mode_active, takecommand_func)
-        response_text = "Pressed Ctrl+C." if res["success"] else "Hotkey failed."
-        success = res["success"]
-    elif "press ctrl v" in query:
-        intent = "automation_hotkey"
-        res = desktop_controller.press_hotkey(["ctrl", "v"], test_mode_active, takecommand_func)
-        response_text = "Pressed Ctrl+V." if res["success"] else "Hotkey failed."
-        success = res["success"]
-    elif "click here" in query:
-        intent = "automation_click"
-        res = desktop_controller.click_current_position(test_mode_active, takecommand_func)
-        response_text = "Clicked mouse." if res["success"] else "Click failed."
-        success = res["success"]
-    elif "wikipedia" in query:
-        intent = "wikipedia"
-        query_text = query.replace("wikipedia", "").strip()
-        search.search_wikipedia(query_text)
-        response_text = f"Searched Wikipedia for {query_text}."
-    elif "play music" in query:
-        intent = "music"
-        song_name = query.replace("play music", "").strip()
-        music.play_music(song_name)
-        response_text = f"Playing music: {song_name}."
-    elif "open youtube" in query:
-        intent = "website"
-        browser.open_website("youtube.com", query)
-        response_text = "Opening YouTube."
-    elif "open google" in query:
-        intent = "website"
-        browser.open_website("google.com", query)
-        response_text = "Opening Google."
-    elif "search google for" in query:
-        intent = "search"
-        search_term = query.replace("search google for", "").strip()
-        search.search_google(search_term)
-        response_text = f"Searching Google for {search_term}."
-    elif "change your name" in query:
-        intent = "identity"
-        utilities.set_name(lambda: takecommand_func(force_text=test_mode_active))
-        response_text = "Changing assistant name."
-    elif "screenshot" in query:
-        intent = "screenshot"
-        screenshot.take_screenshot()
-        speak("I've taken screenshot, please check it")
-        response_text = "Took a screenshot."
-    elif "look at my screen" in query or "read my screen" in query or "what is on my screen" in query or "analyze screen" in query:
-        intent = "screen_read"
-        res = screen_reader.get_screen_context()
-        if res["success"]:
-            speak(res["summary"])
-            response_text = res["summary"]
-        else:
-            speak("Could not read the screen.")
-            success = False
-    elif "tell me a joke" in query:
-        intent = "joke"
-        utilities.tell_joke()
-        response_text = "Told a joke."
-    elif "open" in query:
-        intent = "app"
-        app_name = query.replace("open", "").strip()
-        apps.open_app(app_name)
-        response_text = f"Opening app: {app_name}."
-    elif "take note" in query or "write down" in query:
-        intent = "note"
-        speak("What should I write down?")
-        note_text = takecommand_func(force_text=test_mode_active)
-        notes.take_note(note_text)
-        response_text = "Saved a note."
-    elif "shutdown" in query:
-        intent = "power"
-        speak("Are you sure you want to shut down the system?")
-        ans = takecommand_func(force_text=test_mode_active)
-        if ans and "yes" in ans:
-            speak("Shutting down the system, goodbye!")
-            memory_db.save_interaction(query, "Shutting down.", intent, True)
-            return False
-        else:
-            speak("Shutdown cancelled.")
-            response_text = "Shutdown cancelled."
-    elif "offline" in query or "exit" in query:
-        intent = "exit"
-        speak("Going offline. Have a good day!")
-        memory_db.save_interaction(query, "Going offline.", intent, True)
-        return False
-    else:
-        intent = "unknown"
-        response_text = "No matching keyword found."
-        success = False
-        speak("I am not sure how to help with that.")
-
-    # Save to memory
     if config.MEMORY_ENABLED:
         memory_db.save_interaction(query, response_text, intent, success)
     
     return True
+

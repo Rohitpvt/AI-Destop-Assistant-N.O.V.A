@@ -56,6 +56,12 @@ Output: {"intent": "google_search", "target": "best pizza in Delhi", "confidence
 
 User: "Who was Nikola Tesla?"
 Output: {"intent": "wikipedia_search", "target": "Nikola Tesla", "confidence": 0.9, "reasoning": "Informational query best suited for Wikipedia."}
+
+User: "who is the prime minister of India"
+Output: {"intent": "general_chat", "target": null, "confidence": 1.0, "reasoning": "General knowledge query about prime minister of India."}
+
+User: "explain artificial intelligence in simple words"
+Output: {"intent": "general_chat", "target": null, "confidence": 1.0, "reasoning": "Conversational question asking for an explanation."}
 """
 
 CHAT_RESPONSE_PROMPT = """

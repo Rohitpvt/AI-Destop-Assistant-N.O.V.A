@@ -60,6 +60,7 @@ def run_test_menu():
         print("[27] Test sleep/exit command matching")
         print("[28] Test voice recognition once")
         print("[29] Test voice output (TTS)")
+        print("[30] Test general AI chat")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -91,24 +92,45 @@ def run_test_menu():
             if confirm.lower() == 'y':
                 handle_command("clear memory", test_mode_active=True, takecommand_func=takecommand)
         elif choice == '13':
+            print("--- AI Connection Diagnostic ---")
+            print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")
+            print(f"API Key Present (NVIDIA_API_KEY): {bool(config.NVIDIA_API_KEY)}")
+            print(f"Selected Model (NVIDIA_MODEL): {config.NVIDIA_MODEL}")
+            print(f"Base URL (NVIDIA_BASE_URL): {config.NVIDIA_BASE_URL}")
             if config.has_llm_credentials():
                 print(f"Checking connection to {config.NVIDIA_MODEL}...")
                 resp = llm_client.call_llm([{"role": "user", "content": "Say 'Connection Successful'"}])
                 if resp:
                     print(f"Result: {resp}")
+                    print("API Call: SUCCESS")
                 else:
                     print("Connection Failed.")
+                    print("API Call: FAILED")
             else:
-                print("AI is disabled or NVIDIA_API_KEY is missing in .env")
+                print("Connection Check Skipped: AI is disabled or NVIDIA_API_KEY is missing in .env")
         elif choice == '14':
+            print("--- AI Classification Diagnostic ---")
+            print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")
+            print(f"API Key Present (NVIDIA_API_KEY): {bool(config.NVIDIA_API_KEY)}")
+            print(f"Selected Model (NVIDIA_MODEL): {config.NVIDIA_MODEL}")
+            print(f"Base URL (NVIDIA_BASE_URL): {config.NVIDIA_BASE_URL}")
             if config.has_llm_credentials():
-                cmd = input("Enter command to classify: ")
-                print("Classifying...")
+                print("\nRecommended Test Queries:")
+                print("- 'who is the prime minister of India'")
+                print("- 'explain artificial intelligence'")
+                print("- 'search google for Python decorators'")
+                print("- 'now search carryminati in youtube'")
+                print("- 'open youtube'")
+                print("- 'system status'")
+                cmd = input("\nEnter command to classify (or press Enter for default 'explain artificial intelligence'): ").strip()
+                if not cmd:
+                    cmd = "explain artificial intelligence"
+                print(f"Classifying: '{cmd}'...")
                 result = intent_classifier.classify_intent_with_llm(cmd)
                 import json
                 print(json.dumps(result, indent=2))
             else:
-                print("AI is disabled or NVIDIA_API_KEY is missing in .env")
+                print("Classification Check Skipped: AI is disabled or NVIDIA_API_KEY is missing in .env")
         elif choice == '15':
             print("Capturing screen...")
             res = screen_reader.capture_screen()
@@ -160,6 +182,24 @@ def run_test_menu():
             print("Testing voice output...")
             speak("NOVA voice output test successful.")
             print("Speak command finished.")
+        elif choice == '30':
+            print("--- Test General AI Chat ---")
+            print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")
+            print(f"API Key Present (NVIDIA_API_KEY): {bool(config.NVIDIA_API_KEY)}")
+            if config.has_llm_credentials():
+                cmd = input("\nEnter conversational query (e.g. 'who is the prime minister of India'): ").strip()
+                if cmd:
+                    print("Generating chat response...")
+                    recent_memory = []
+                    try:
+                        from memory import memory_db
+                        recent_memory = memory_db.get_recent_interactions(5)
+                    except:
+                        pass
+                    resp = intent_classifier.generate_chat_response(cmd, recent_memory)
+                    print(f"\nNOVA Response: {resp}")
+            else:
+                print("General Chat Check Skipped: AI is disabled or NVIDIA_API_KEY is missing in .env")
         elif choice == 'm':
             print("\nEnter manual commands (e.g., 'open youtube', 'time', 'exit').")
             while True:
