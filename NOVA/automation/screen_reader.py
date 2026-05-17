@@ -25,6 +25,12 @@ from ai import intent_classifier
 
 def setup_tesseract():
     """Configures the Tesseract path if provided in config."""
+    try:
+        from NOVA import config
+    except ImportError:
+        import config
+    import pytesseract
+
     if config.TESSERACT_CMD:
         pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
 
@@ -54,6 +60,19 @@ def extract_text_from_screen(image_path=None) -> dict:
     if not config.OCR_ENABLED:
         return {"success": False, "error": "OCR is disabled."}
 
+    # Add validation before OCR
+    if not config.TESSERACT_CMD:
+        return {
+            "success": False,
+            "error": "Screen reading failed: Tesseract OCR was not found. Install Tesseract OCR and set TESSERACT_CMD in your .env file, for example: C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+        }
+        
+    if not os.path.exists(config.TESSERACT_CMD):
+        return {
+            "success": False,
+            "error": "Screen reading failed: Tesseract OCR was not found. Install Tesseract OCR and set TESSERACT_CMD in your .env file, for example: C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+        }
+
     image_path = image_path or config.SCREENSHOT_ANALYSIS_FILE
     
     if not os.path.exists(image_path):
@@ -70,11 +89,9 @@ def extract_text_from_screen(image_path=None) -> dict:
         clean_text = scrub_sensitive_text(text)
         
         return {"success": True, "text": clean_text}
-    except Exception as e:
-        error_msg = str(e)
-        if "tesseract is not installed" in error_msg.lower():
-            error_msg = "Tesseract OCR is not installed or not in PATH. Please configure TESSERACT_CMD in .env."
-        log_event("extract_text", "Screen Reader", "Failure", error_msg)
+    except (pytesseract.TesseractNotFoundError, Exception) as e:
+        error_msg = "Screen reading failed: Tesseract OCR was not found. Install Tesseract OCR and set TESSERACT_CMD in your .env file, for example: C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+        log_event("extract_text", "Screen Reader", "Failure", str(e))
         return {"success": False, "error": error_msg}
 
 def analyze_screen_text(text: str) -> str:

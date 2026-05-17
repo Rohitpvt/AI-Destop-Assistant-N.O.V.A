@@ -74,6 +74,8 @@ def check_deterministic_keywords(query, test_mode_active, takecommand_func):
         return True, execute_intent("time", None, query, test_mode_active, takecommand_func)
     if "date" in q:
         return True, execute_intent("date", None, query, test_mode_active, takecommand_func)
+    if "read screen" in q or "read my screen" in q or "screen read" in q:
+        return True, execute_intent("screen_read", None, query, test_mode_active, takecommand_func)
     if "system status" in q or "check my system" in q or "cpu usage" in q or "ram usage" in q:
         return True, execute_intent("system_status", None, query, test_mode_active, takecommand_func)
     if "type this" in q:

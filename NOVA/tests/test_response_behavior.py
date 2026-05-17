@@ -324,5 +324,89 @@ class TestResponseBehavior(unittest.TestCase):
         self.assertEqual(worker.clean_query(""), "")
         self.assertEqual(worker.clean_query(None), "")
 
+    def test_setup_tesseract_configures_cmd(self):
+        """18. Verify setup_tesseract sets tesseract_cmd path from config."""
+        from automation.screen_reader import setup_tesseract
+        import pytesseract
+        old_val = config.TESSERACT_CMD
+        try:
+            config.TESSERACT_CMD = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+            setup_tesseract()
+            self.assertEqual(pytesseract.pytesseract.tesseract_cmd, 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe')
+        finally:
+            config.TESSERACT_CMD = old_val
+
+    def test_extract_text_missing_path_returns_error(self):
+        """19. Verify extract_text_from_screen returns clear error message if TESSERACT_CMD is empty."""
+        from automation.screen_reader import extract_text_from_screen
+        old_val = config.TESSERACT_CMD
+        try:
+            config.TESSERACT_CMD = ''
+            res = extract_text_from_screen()
+            self.assertFalse(res["success"])
+            self.assertIn("Screen reading failed: Tesseract OCR was not found", res["error"])
+        finally:
+            config.TESSERACT_CMD = old_val
+
+    def test_extract_text_nonexistent_path_returns_error(self):
+        """20. Verify extract_text_from_screen returns clear error if TESSERACT_CMD path does not exist."""
+        from automation.screen_reader import extract_text_from_screen
+        old_val = config.TESSERACT_CMD
+        try:
+            config.TESSERACT_CMD = 'C:\\nonexistent\\tesseract.exe'
+            res = extract_text_from_screen()
+            self.assertFalse(res["success"])
+            self.assertIn("Screen reading failed: Tesseract OCR was not found", res["error"])
+        finally:
+            config.TESSERACT_CMD = old_val
+
+    @patch('automation.screen_reader.os.path.exists')
+    @patch('automation.screen_reader.Image.open')
+    @patch('pytesseract.image_to_string')
+    def test_extract_text_tesseract_not_found_error_caught(self, mock_image_to_string, mock_image_open, mock_exists):
+        """21. Verify extract_text_from_screen catches TesseractNotFoundError and returns user-facing message."""
+        import pytesseract
+        from automation.screen_reader import extract_text_from_screen
+        
+        mock_exists.return_value = True
+        mock_image_open.return_value = MagicMock()
+        mock_image_to_string.side_effect = pytesseract.TesseractNotFoundError()
+        
+        old_val = config.TESSERACT_CMD
+        try:
+            config.TESSERACT_CMD = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+            res = extract_text_from_screen()
+            self.assertFalse(res["success"])
+            self.assertIn("Screen reading failed: Tesseract OCR was not found", res["error"])
+        finally:
+            config.TESSERACT_CMD = old_val
+
+    @patch('automation.screen_reader.os.path.exists')
+    @patch('automation.screen_reader.capture_screen')
+    @patch('automation.screen_reader.Image.open')
+    @patch('pytesseract.image_to_string')
+    @patch('config.has_llm_credentials')
+    @patch('core.tts.speak')
+    def test_read_screen_response_cached_in_router(self, mock_speak, mock_has_llm, mock_image_to_string, mock_image_open, mock_capture, mock_exists):
+        """22. Verify read_screen command populates router.get_last_response response cache."""
+        from core.router import handle_command, get_last_response
+        
+        mock_exists.return_value = True
+        mock_capture.return_value = {"success": True, "path": "dummy.png"}
+        mock_image_open.return_value = MagicMock()
+        mock_image_to_string.return_value = "Hello World"
+        mock_has_llm.return_value = False
+        
+        old_val = config.TESSERACT_CMD
+        try:
+            config.TESSERACT_CMD = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+            success = handle_command("read screen", test_mode_active=True)
+            self.assertTrue(success)
+            
+            last_resp = get_last_response()
+            self.assertEqual(last_resp["response"], "I detected 1 lines of text (11 characters). Visible content includes: Hello World...")
+        finally:
+            config.TESSERACT_CMD = old_val
+
 if __name__ == "__main__":
     unittest.main()

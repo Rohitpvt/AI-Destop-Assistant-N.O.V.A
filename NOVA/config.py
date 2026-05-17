@@ -61,7 +61,7 @@ SCREEN_AWARENESS_ENABLED = os.getenv("NOVA_SCREEN_AWARENESS_ENABLED", "true").lo
 SCREENSHOT_ANALYSIS_FILE = os.path.join(DATA_DIR, "latest_screen.png")
 OCR_ENABLED = os.getenv("NOVA_OCR_ENABLED", "true").lower() == "true"
 OCR_LANGUAGE = os.getenv("NOVA_OCR_LANGUAGE", "eng")
-TESSERACT_CMD = os.getenv("NOVA_TESSERACT_CMD", "")
+TESSERACT_CMD = os.getenv("TESSERACT_CMD", os.getenv("NOVA_TESSERACT_CMD", "")).strip()
 
 # --- Safe Automation & Monitoring Settings ---
 AUTOMATION_ENABLED = os.getenv("NOVA_AUTOMATION_ENABLED", "true").lower() == "true"

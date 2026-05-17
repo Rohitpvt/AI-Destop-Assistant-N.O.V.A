@@ -54,6 +54,12 @@ def get_system_status() -> dict:
         last_err = get_last_tts_error()
         voice_info = get_active_voice_info()
 
+        # Tesseract / OCR Diagnostics
+        tesseract_configured = bool(getattr(config, 'TESSERACT_CMD', ''))
+        tesseract_path = getattr(config, 'TESSERACT_CMD', '')
+        tesseract_exists = os.path.exists(tesseract_path) if (tesseract_configured and tesseract_path) else False
+        ocr_available = getattr(config, 'OCR_ENABLED', True) and tesseract_configured and tesseract_exists
+
         return {
             "success": True,
             "cpu_percent": cpu_usage,
@@ -68,7 +74,11 @@ def get_system_status() -> dict:
             "pythoncom_status": pythoncom_status,
             "active_voice_name": voice_info.get("name", "None"),
             "active_voice_id": voice_info.get("id", "None"),
-            "last_tts_error": last_err
+            "last_tts_error": last_err,
+            "tesseract_configured": tesseract_configured,
+            "tesseract_path": tesseract_path,
+            "tesseract_exists": tesseract_exists,
+            "ocr_available": ocr_available
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -91,4 +101,5 @@ def summarize_system_status() -> str:
     if status.get('last_tts_error'):
         summary += f" Note: Last speech error was: {status['last_tts_error']}."
     
+    summary += f" Screen OCR is {'fully available' if status.get('ocr_available') else 'unavailable (configure Tesseract)'}."
     return summary
