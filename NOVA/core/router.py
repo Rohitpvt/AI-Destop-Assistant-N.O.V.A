@@ -340,9 +340,15 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             recent_memory = memory_db.get_recent_interactions(5)
             chat_resp = intent_classifier.generate_chat_response(query, recent_memory)
             if chat_resp:
-                speak(chat_resp)
-                print(f"[NOVA Chat]: {chat_resp}")
-                response_text = chat_resp
+                if chat_resp.startswith("[Error]"):
+                    err_detail = chat_resp.replace("[Error]", "").strip()
+                    response_text = f"AI response failed: {err_detail}"
+                    speak("AI response failed.")
+                    success = False
+                else:
+                    speak(chat_resp)
+                    print(f"[NOVA Chat]: {chat_resp}")
+                    response_text = chat_resp
             else:
                 response_text = "AI response is currently unavailable. Please check LLM settings."
                 speak("AI response is currently unavailable. Please check LLM settings.")

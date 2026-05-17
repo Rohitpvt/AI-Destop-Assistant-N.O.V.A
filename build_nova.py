@@ -8,18 +8,27 @@ def build():
     
     # Define paths
     entry_point = os.path.join("NOVA", "nova.py")
-    dist_path = os.path.join("dist", "nova")
+    dist_path = os.path.join("dist_build", "nova")
     
     # Platform specific separator for --add-data
     sep = os.pathsep # ';' on Windows, ':' on Linux
     
+    # Resolve PyInstaller executable
+    pyinstaller_bin = "pyinstaller"
+    venv_pyinstaller = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "Scripts", "pyinstaller.exe")
+    if os.path.exists(venv_pyinstaller):
+        pyinstaller_bin = venv_pyinstaller
+    elif os.path.exists(os.path.join("venv", "Scripts", "pyinstaller.exe")):
+        pyinstaller_bin = os.path.join("venv", "Scripts", "pyinstaller.exe")
+
     # Base command
     cmd = [
-        "pyinstaller",
+        pyinstaller_bin,
         "--noconfirm",
         "--onedir",
         "--console",
         "--name", "nova",
+        "--distpath", "dist_build",
         "--hidden-import", "speech_recognition",
         "--hidden-import", "pyttsx3.drivers",
         "--hidden-import", "pyttsx3.drivers.sapi5",

@@ -3,10 +3,19 @@ import os
 import argparse
 import webbrowser as wb
 
+# Configure Windows console encoding for UTF-8 compatibility
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Ensure the NOVA directory is in the search path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
+
 
 from core.logger import log_event, log_info
 from core.tts import speak
@@ -98,15 +107,21 @@ def run_test_menu():
             print(f"API Key Present (NVIDIA_API_KEY): {'yes' if (bool(config.NVIDIA_API_KEY) and config.NVIDIA_API_KEY != 'your_actual_nvidia_key_here') else 'no'}")
             print(f"NVIDIA_BASE_URL: {config.NVIDIA_BASE_URL}")
             print(f"NVIDIA_MODEL: {config.NVIDIA_MODEL}")
+            print(f"LLM Timeout (LLM_TIMEOUT): {config.LLM_TIMEOUT}")
             if config.has_llm_credentials():
                 print(f"Checking connection to {config.NVIDIA_MODEL}...")
-                resp = llm_client.call_llm([{"role": "user", "content": "Say 'Connection Successful'"}])
+                resp = llm_client.call_llm([{"role": "user", "content": "Say 'Connection Successful' in 2 words."}])
                 if resp:
-                    resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
-                    print(f"Result: {resp_safe}")
-                    print("Connection Result: SUCCESS")
+                    if resp.startswith("[Error]"):
+                        print("Connection Result: FAILED")
+                        err_detail = resp.replace("[Error]", "").strip()
+                        print(f"Reason: {err_detail}")
+                    else:
+                        resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
+                        print(f"Result: {resp_safe}")
+                        print("Connection Result: SUCCESS")
                 else:
-                    print("Connection Result: FAILED")
+                    print("Connection Result: FAILED (Empty response)")
             else:
                 print("Connection Result: SKIPPED (AI disabled or invalid API key)")
         elif choice == '14':
@@ -199,8 +214,16 @@ def run_test_menu():
                         pass
                     resp = intent_classifier.generate_chat_response(cmd, recent_memory)
                     if resp:
-                        resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
-                        print(f"\nNOVA Response: {resp_safe}")
+                        if resp.startswith("[Error]"):
+                            err_detail = resp.replace("[Error]", "").strip()
+                            print(f"\nNOVA Response: FAILED")
+                            print(f"Error Details: {err_detail}")
+                        else:
+                            try:
+                                print(f"\nNOVA Response: {resp}")
+                            except UnicodeEncodeError:
+                                resp_safe = resp.encode('ascii', errors='replace').decode('ascii')
+                                print(f"\nNOVA Response (Safe-encoded): {resp_safe}")
                     else:
                         print("\nNOVA Response: None (Failed)")
             else:

@@ -22,6 +22,10 @@ def classify_intent_with_llm(command: str, recent_memory=None) -> dict:
     if not response_text:
         return {"intent": "unknown", "confidence": 0.0, "reasoning": "LLM failed to respond."}
 
+    if response_text.startswith("[Error]"):
+        return {"intent": "unknown", "confidence": 0.0, "reasoning": response_text}
+
+
     # Clean the response in case the LLM included markdown or extra text
     clean_json = response_text.strip()
     if clean_json.startswith("```json"):

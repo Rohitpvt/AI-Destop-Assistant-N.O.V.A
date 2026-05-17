@@ -15,8 +15,10 @@ except ImportError:
         LLM_TIMEOUT = 20
 
 try:
+    import openai
     from openai import OpenAI
 except ImportError:
+    openai = None
     OpenAI = None
 
 def get_client():
@@ -26,7 +28,8 @@ def get_client():
     try:
         client = OpenAI(
             base_url=config.NVIDIA_BASE_URL,
-            api_key=config.NVIDIA_API_KEY
+            api_key=config.NVIDIA_API_KEY,
+            max_retries=0
         )
         return client
     except Exception as e:
@@ -37,7 +40,7 @@ def call_llm(messages, temperature=0.2, max_tokens=500):
     """Makes a request to the LLM and returns the response content."""
     client = get_client()
     if not client:
-        return None
+        return "[Error] AI client not initialized. Check credentials or dependencies."
 
     try:
         response = client.chat.completions.create(
@@ -49,9 +52,28 @@ def call_llm(messages, temperature=0.2, max_tokens=500):
         )
         if response and response.choices:
             return response.choices[0].message.content
-        return None
+        return "[Error] Empty response from AI service."
     except Exception as e:
-        # Log error safely without exposing key
-        logging.error(f"LLM API Call Error: {str(e)}")
+        err_msg = ""
+        if openai:
+            if isinstance(e, openai.APITimeoutError):
+                err_msg = "[Error] AI request timed out. Please try again."
+            elif isinstance(e, openai.AuthenticationError):
+                err_msg = "[Error] Authentication failed. Check your NVIDIA_API_KEY."
+            elif isinstance(e, openai.RateLimitError):
+                err_msg = "[Error] Rate limit exceeded. Please try again later."
+            elif isinstance(e, openai.APIConnectionError):
+                err_msg = "[Error] Connection failed. Check your internet connection."
+            elif isinstance(e, openai.APIStatusError):
+                err_msg = f"[Error] API status error (Code: {getattr(e, 'status_code', 'unknown')})."
+            elif isinstance(e, openai.APIError):
+                err_msg = f"[Error] API error: {str(e)}"
+            else:
+                err_msg = f"[Error] Unexpected AI error: {str(e)}"
+        else:
+            err_msg = f"[Error] AI Error: {str(e)}"
+
+        logging.error(f"LLM Call Error: {str(e)}")
         print(f"LLM Error: {str(e)}")
-        return None
+        return err_msg
+
