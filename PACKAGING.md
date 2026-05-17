@@ -26,20 +26,20 @@ This document explains how to package NOVA as a standalone Windows executable us
     ```
 
 4.  **Find the Output**:
-    - The bundled folder will be in `dist/nova/`.
-    - The main executable is `dist/nova/nova.exe`.
+    - The bundled folder will be in `dist_build/nova/`.
+    - The main executable is `dist_build/nova/nova.exe`.
 
 ## 🚀 Running the Executable
 
 1.  **Copy Configuration**:
-    - Copy `.env.example` to `dist/nova/.env`.
-    - Edit `dist/nova/.env` with your API keys and Tesseract path.
+    - Copy `.env.example` to `dist_build/nova/.env`.
+    - Edit `dist_build/nova/.env` with your API keys, Tesseract path, and optional microphone overrides.
 
 2.  **Execute Modes**:
-    - **Normal Mode**: `.\dist\nova\nova.exe`
-    - **GUI Mode**: `.\dist\nova\nova.exe --gui`
-    - **Wake Mode**: `.\dist\nova\nova.exe --wake`
-    - **Test Mode**: `.\dist\nova\nova.exe --test`
+    - **Normal Mode**: `.\dist_build\nova\nova.exe`
+    - **GUI Mode**: `.\dist_build\nova\nova.exe --gui`
+    - **Wake Mode**: `.\dist_build\nova\nova.exe --wake`
+    - **Test Mode**: `.\dist_build\nova\nova.exe --test`
 
 ## ⚠️ Important Notes
 - **Safety Confirmation**: Even as an `.exe`, NOVA will still ask for confirmation before performing desktop actions or saving notes.
@@ -51,8 +51,10 @@ This document explains how to package NOVA as a standalone Windows executable us
 ### 1. "Tesseract is not found"
 Ensure `NOVA_TESSERACT_CMD` in your `.env` (beside the `.exe`) points to the correct location of `tesseract.exe`.
 
-### 2. "PyAudio error" or "Microphone not detected"
-This is often a driver issue. Ensure PyAudio was correctly installed during the build process.
+### 2. "PyAudio error" or "Microphone not detected" in Packaged EXE
+- **Copy Env Configuration**: Make sure the `.env` file containing your microphone settings is placed directly in the `dist_build/nova/` folder beside `nova.exe`.
+- **List Audio Devices**: Start `.\dist_build\nova\nova.exe --test` and select option **`[31]`** to list available device indexes. If you find your physical mic at another index (e.g. `2`), set `NOVA_MIC_DEVICE_INDEX=2` in your local `.env`.
+- **Driver Accessibility**: Ensure Windows privacy settings permit microphone access and that no other application is locking the audio device exclusively.
 
 ### 3. Windows Defender Warning
 Since the executable is not digitally signed, Windows Defender may flag it. You may need to click "Run anyway".

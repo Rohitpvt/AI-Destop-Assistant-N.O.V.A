@@ -81,8 +81,43 @@ WAKE_MODE_ENABLED = os.getenv("NOVA_WAKE_MODE_ENABLED", "false").lower() == "tru
 WAKE_WORDS = [w.strip().lower() for w in os.getenv("NOVA_WAKE_WORDS", "nova,hey nova,wake up nova").split(",")]
 SLEEP_WORDS = [w.strip().lower() for w in os.getenv("NOVA_SLEEP_WORDS", "sleep,go to sleep,stop listening").split(",")]
 EXIT_WORDS = [w.strip().lower() for w in os.getenv("NOVA_EXIT_WORDS", "exit,quit,shutdown nova").split(",")]
-LISTEN_TIMEOUT_SECONDS = int(os.getenv("NOVA_LISTEN_TIMEOUT_SECONDS", "5"))
-PHRASE_TIME_LIMIT_SECONDS = int(os.getenv("NOVA_PHRASE_TIME_LIMIT_SECONDS", "10"))
+def _parse_int_env(key, default):
+    val = os.getenv(key, "")
+    return int(val) if val.strip().isdigit() else default
+
+def _parse_float_env(key, default):
+    val = os.getenv(key, "")
+    try:
+        return float(val)
+    except ValueError:
+        return default
+
+def _parse_bool_env(key, default):
+    val = os.getenv(key, "").strip().lower()
+    if not val:
+        return default
+    return val == "true"
+
+def _parse_mic_index(key, default):
+    val = os.getenv(key, "").strip()
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+MIC_DEVICE_INDEX = _parse_mic_index("NOVA_MIC_DEVICE_INDEX", None)
+MIC_ENERGY_THRESHOLD = _parse_int_env("NOVA_MIC_ENERGY_THRESHOLD", 300)
+MIC_DYNAMIC_ENERGY_THRESHOLD = _parse_bool_env("NOVA_MIC_DYNAMIC_ENERGY_THRESHOLD", True)
+MIC_PAUSE_THRESHOLD = _parse_float_env("NOVA_MIC_PAUSE_THRESHOLD", 0.8)
+MIC_LISTEN_TIMEOUT_SECONDS = _parse_int_env("NOVA_MIC_LISTEN_TIMEOUT_SECONDS", 8)
+MIC_PHRASE_TIME_LIMIT_SECONDS = _parse_int_env("NOVA_PHRASE_TIME_LIMIT_SECONDS", 12)
+MIC_AMBIENT_NOISE_DURATION = _parse_float_env("NOVA_MIC_AMBIENT_NOISE_DURATION", 1.0)
+
+# Backward-compatible references for older codebases
+LISTEN_TIMEOUT_SECONDS = MIC_LISTEN_TIMEOUT_SECONDS
+PHRASE_TIME_LIMIT_SECONDS = MIC_PHRASE_TIME_LIMIT_SECONDS
 WAKE_LISTEN_INTERVAL_SECONDS = 1
 VOICE_CONFIRMATION_ENABLED = os.getenv("NOVA_VOICE_CONFIRMATION_ENABLED", "true").lower() == "true"
 

@@ -197,6 +197,7 @@ class MainWindow(QMainWindow):
             self.append_chat("NOVA", "Please wait until the current command finishes processing.")
             return
 
+        self.append_chat("NOVA", "Listening... please speak now.")
         self.voice_worker = VoiceWorker()
         self.voice_worker.status_update.connect(self.update_status)
         self.voice_worker.recognized.connect(self.on_voice_recognized)
@@ -221,12 +222,26 @@ class MainWindow(QMainWindow):
         color = "#20E6A8" if status.lower() == "idle" else "#20D9FF"
         self.status_label.setText(f"Status: <span style='color: {color};'>{status}</span>")
 
-    @pyqtSlot(str)
-    def on_voice_recognized(self, query):
-        if query:
+    @pyqtSlot(dict)
+    def on_voice_recognized(self, result):
+        if result["success"]:
+            query = result["text"]
             self.submit_command(query)
         else:
-            self.append_chat("NOVA", "I did not hear anything.")
+            err_type = result.get("error_type")
+            msg = result.get("message", "I did not hear anything.")
+            
+            if err_type == "timeout":
+                self.append_chat("NOVA", "I did not hear anything. Please check your microphone or speak closer.")
+            elif err_type == "unknown_speech":
+                self.append_chat("NOVA", "I heard something, but could not understand it.")
+            elif err_type == "request_error":
+                self.append_chat("NOVA", "Speech recognition service failed. Check your internet connection.")
+            elif err_type in ["microphone_error", "pyaudio_missing"]:
+                self.append_chat("NOVA", "Microphone is unavailable. Check Windows input settings.")
+            else:
+                self.append_chat("NOVA", msg)
+                
             self.update_status("Idle")
 
     @pyqtSlot(str, bool)

@@ -70,6 +70,8 @@ def run_test_menu():
         print("[28] Test voice recognition once")
         print("[29] Test voice output (TTS)")
         print("[30] Test general AI chat")
+        print("[31] List available microphones")
+        print("[32] Test selected microphone with longer timeout")
         print("[M] Manual Command Mode")
         print("[0] Exit Test Mode")
         
@@ -191,13 +193,63 @@ def run_test_menu():
             print(f"Is sleep: {is_sleep_command(phrase)}")
             print(f"Is exit: {is_exit_command(phrase)}")
         elif choice == '28':
-            print("Listening...")
-            res = takecommand()
-            print(f"Recognized: '{res}'")
+            print("Listening (8s timeout, 12s limit)...")
+            from core.speech import listen_once
+            res = listen_once()
+            print("\n--- VOICE RECOGNITION RESULT ---")
+            print(f"Success: {res['success']}")
+            print(f"Recognized Text: '{res['text']}'")
+            print(f"Error Type: {res['error_type']}")
+            print(f"Details: {res['message']}")
+            print("---------------------------------")
         elif choice == '29':
             print("Testing voice output...")
             speak("NOVA voice output test successful.")
             print("Speak command finished.")
+        elif choice == '31':
+            print("Querying available audio devices...")
+            from core.speech import list_microphones
+            res = list_microphones()
+            if res["success"]:
+                print(f"\n{res['message']}")
+                for dev in res["devices"]:
+                    print(f"Index [{dev['index']}]: {dev['name']}")
+            else:
+                print(f"\nFailed to list microphones: {res['message']} (Error Type: {res.get('error_type')})")
+        elif choice == '32':
+            print("--- Custom Microphone Test ---")
+            from core.speech import list_microphones, listen_once
+            # List first to help user choose
+            mics = list_microphones()
+            if mics["success"] and mics["devices"]:
+                print("\nAvailable microphones:")
+                for dev in mics["devices"]:
+                    print(f"Index [{dev['index']}]: {dev['name']}")
+            
+            idx_str = input("\nEnter microphone device index (leave blank for default): ").strip()
+            target_idx = None
+            if idx_str:
+                try:
+                    target_idx = int(idx_str)
+                except ValueError:
+                    print("Invalid index. Falling back to default.")
+            
+            timeout_str = input("Enter custom timeout in seconds (default is 15): ").strip()
+            target_timeout = 15
+            if timeout_str:
+                try:
+                    target_timeout = int(timeout_str)
+                except ValueError:
+                    print("Invalid timeout. Falling back to 15s.")
+
+            print(f"\nListening on index {target_idx if target_idx is not None else 'Default'} with {target_timeout}s timeout. Please speak now...")
+            res = listen_once(timeout=target_timeout, phrase_time_limit=target_timeout + 5, device_index=target_idx)
+            print("\n--- VOICE RECOGNITION RESULT ---")
+            print(f"Success: {res['success']}")
+            print(f"Recognized Text: '{res['text']}'")
+            print(f"Error Type: {res['error_type']}")
+            print(f"Details: {res['message']}")
+            print("---------------------------------")
         elif choice == '30':
             print("--- Test General AI Chat ---")
             print(f"LLM Enabled (NOVA_LLM_ENABLED): {config.LLM_ENABLED}")

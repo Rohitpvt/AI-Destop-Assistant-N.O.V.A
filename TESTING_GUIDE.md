@@ -97,4 +97,30 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 - You can manage memory using commands like `show memory` and `clear memory`.
 
 ### Data Location
-- Assistant identity and persistent data are stored in: `data/`
+- Assistant identity and persistent data are stored in: data/
+
+## 6. Voice Command & Microphone Diagnostics
+
+If you are testing speech recognition or always-listening wake mode, utilize the following steps:
+
+### Diagnostic CLI Commands
+Start NOVA in test mode:
+```powershell
+python NOVA/nova.py --test
+```
+1.  **Option `[31] List available microphones`**:
+    - Queries the local host API for all input audio devices.
+    - Displays their PyAudio device indexes and names.
+2.  **Option `[32] Test selected microphone with longer timeout`**:
+    - Lets you choose a custom microphone index.
+    - Calibrates background noise.
+    - Listens for a phrase with a configurable timeout (e.g. 15s) and prints a structured JSON response of the result (e.g. Success vs. Timeout vs. Unrecognizable).
+3.  **Option `[28] Test voice recognition once`**:
+    - Listens for a standard phrase with the default 8s timeout.
+
+### Adjusting Sensitivity in `.env`
+If you notice that speech detection is timing out or is too sensitive:
+- **`NOVA_MIC_DEVICE_INDEX`**: Set to the physical device index from Option 31 (leave blank for system default).
+- **`NOVA_MIC_ENERGY_THRESHOLD`**: Increase to `500` or `1000` if you are in a noisy room to prevent background noise from keeping the microphone active indefinitely.
+- **`NOVA_MIC_LISTEN_TIMEOUT_SECONDS`**: Increase to `15` to give yourself more time to speak.
+

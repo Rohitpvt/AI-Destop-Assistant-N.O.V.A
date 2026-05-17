@@ -38,10 +38,22 @@ def run_wake_mode():
     log_info("Wake Mode Started. Waiting for wake word...")
     print("\n--- NOVA Wake Mode Active (Waiting for 'NOVA') ---")
     
+    from core.speech import listen_once
+    
     while True:
         # Step 1: Listen for wake word
-        query = takecommand()
-        
+        result = listen_once()
+        if not result["success"]:
+            # If there's an ongoing microphone/hardware error (not a timeout or unrecognizable speech),
+            # log it and sleep a bit to avoid CPU spin.
+            if result["error_type"] not in ["timeout", "unknown_speech"]:
+                log_info(f"Wake mode listening issue: {result['message']}")
+                time.sleep(2)
+            else:
+                time.sleep(config.WAKE_LISTEN_INTERVAL_SECONDS)
+            continue
+            
+        query = result["text"]
         if is_exit_command(query):
             speak("Exiting wake mode. Goodbye!")
             log_info("Wake mode exited via voice command.")
@@ -52,12 +64,12 @@ def run_wake_mode():
             speak("Yes, I am listening.")
             
             # Step 2: Listen for command
-            command = takecommand()
-            
-            if not command:
-                log_info("No command detected after wake word. Returning to idle.")
+            cmd_result = listen_once()
+            if not cmd_result["success"]:
+                log_info(f"No command detected after wake word: {cmd_result['message']}")
                 continue
                 
+            command = cmd_result["text"]
             if is_sleep_command(command):
                 speak("Going back to sleep.")
                 log_info("Returning to idle via sleep command.")
@@ -78,20 +90,25 @@ def run_wake_mode():
                 
             print("\n--- Returning to idle (Waiting for 'NOVA') ---")
         
-        # Small sleep to prevent high CPU usage if takecommand is too fast
+        # Small sleep to prevent high CPU usage
         time.sleep(config.WAKE_LISTEN_INTERVAL_SECONDS)
 
 def run_normal_voice_mode():
     """Starts the standard continuous voice loop (Phase 1 legacy style)."""
     log_info("Normal Voice Mode Started.")
     from features import utilities
+    from core.speech import listen_once
     utilities.wishme()
     
     while True:
-        query = takecommand()
-        if not query:
+        result = listen_once()
+        if not result["success"]:
+            if result["error_type"] not in ["timeout", "unknown_speech"]:
+                print(f"Speech recognition error: {result['message']}")
+                time.sleep(2)
             continue
             
+        query = result["text"]
         should_continue = handle_command(query, test_mode_active=False, takecommand_func=takecommand)
         if not should_continue:
             break

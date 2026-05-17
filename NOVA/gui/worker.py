@@ -56,15 +56,16 @@ class CommandWorker(QThread):
 
 class VoiceWorker(QThread):
     """Background worker to handle voice recognition."""
-    recognized = pyqtSignal(str)
+    recognized = pyqtSignal(dict)
     status_update = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
     def run(self):
         try:
             self.status_update.emit("Listening...")
-            query = takecommand()
-            self.recognized.emit(query)
+            from core.speech import listen_once
+            result = listen_once()
+            self.recognized.emit(result)
         except Exception as e:
             err_msg = f"Voice recognition failed: {e}"
             log_error(f"{err_msg}\n{traceback.format_exc()}")
@@ -84,6 +85,7 @@ class WakeWorker(QThread):
         try:
             from core.voice_runtime import is_wake_word, is_sleep_command, is_exit_command
             from core.tts import speak
+            from core.speech import listen_once
             import config
             import time
 
@@ -91,8 +93,15 @@ class WakeWorker(QThread):
             
             while self.running:
                 try:
-                    query = takecommand()
-                    
+                    result = listen_once()
+                    if not result["success"]:
+                        # Log microphone/connection errors to help debugging, but don't crash
+                        if result["error_type"] not in ["timeout", "unknown_speech"]:
+                            log_error(f"Wake mode listening warning: {result['message']}")
+                        time.sleep(1)
+                        continue
+
+                    query = result["text"]
                     if is_exit_command(query):
                         self.status_update.emit("Exiting...")
                         break
@@ -101,14 +110,17 @@ class WakeWorker(QThread):
                         self.status_update.emit("I'm listening...")
                         speak("Yes, I am listening.")
                         
-                        command = takecommand()
-                        if command:
+                        cmd_result = listen_once()
+                        if cmd_result["success"]:
+                            command = cmd_result["text"]
                             if is_sleep_command(command):
                                 speak("Going back to sleep.")
                                 self.status_update.emit("Wake Mode Active")
                                 continue
                             
                             self.command_detected.emit(command)
+                        else:
+                            log_info(f"Wake command listen failed: {cmd_result['message']}")
                         
                         self.status_update.emit("Wake Mode Active")
                 except Exception as inner_e:
