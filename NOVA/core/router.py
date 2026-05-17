@@ -180,7 +180,12 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
 
     # Step 3: Check if general question fallback is triggered but LLM is disabled or missing credentials
     if is_looks_like_general_question(query):
-        response_text = "AI response is currently unavailable. Please check LLM settings."
+        if not config.LLM_ENABLED:
+            response_text = "LLM is disabled in configuration. Please check LLM settings."
+        elif not config.NVIDIA_API_KEY or config.NVIDIA_API_KEY == "your_actual_nvidia_key_here":
+            response_text = "API key is not configured. Please add it to your .env file."
+        else:
+            response_text = "AI response is currently unavailable. Please check LLM settings."
         intent = "unknown"
         success = False
         speak(response_text)
@@ -213,11 +218,9 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             success = res["success"]
             
         elif intent == "time":
-            utilities.time()
-            response_text = "Told the time."
+            response_text = utilities.time()
         elif intent == "date":
-            utilities.date()
-            response_text = "Told the date."
+            response_text = utilities.date()
         elif intent == "wikipedia_search":
             query_text = target if target else query.replace("wikipedia", "").strip()
             res = search.search_wikipedia(query_text)
@@ -342,8 +345,8 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             if chat_resp:
                 if chat_resp.startswith("[Error]"):
                     err_detail = chat_resp.replace("[Error]", "").strip()
-                    response_text = f"AI response failed: {err_detail}"
-                    speak("AI response failed.")
+                    response_text = err_detail
+                    speak(f"AI response failed: {err_detail}")
                     success = False
                 else:
                     speak(chat_resp)

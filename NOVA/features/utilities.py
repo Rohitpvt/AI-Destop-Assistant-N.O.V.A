@@ -16,21 +16,25 @@ except ImportError:
 from core.tts import speak
 from core.logger import log_event
 
-def time() -> None:
-    """Tells the current time."""
-    current_time = datetime.datetime.now().strftime("%I:%M:%S %p")
-    speak("The current time is")
-    speak(current_time)
-    print("The current time is", current_time)
+def time() -> str:
+    """Tells the current time and returns the response string."""
+    current_time = datetime.datetime.now().strftime("%I:%M %p")
+    response = f"The current time is {current_time}."
+    speak(response)
+    print(response)
     log_event("time", "Time", "Success")
+    return response
 
-def date() -> None:
-    """Tells the current date."""
+def date() -> str:
+    """Tells the current date and returns the response string."""
     now = datetime.datetime.now()
-    speak("The current date is")
-    speak(f"{now.day} {now.strftime('%B')} {now.year}")
-    print(f"The current date is {now.day}/{now.month}/{now.year}")
+    day_name = now.strftime("%A")
+    month_name = now.strftime("%B")
+    response = f"Today is {day_name}, {now.day} {month_name} {now.year}."
+    speak(response)
+    print(response)
     log_event("date", "Date", "Success")
+    return response
 
 def load_name() -> str:
     """Loads the assistant's name from a file, or uses a default name."""
