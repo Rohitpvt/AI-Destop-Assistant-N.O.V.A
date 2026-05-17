@@ -35,6 +35,7 @@ data/latest_screen.png
 # Build & Distribution
 build/
 dist/
+dist_build/
 *.exe
 *.zip
 *.spec
