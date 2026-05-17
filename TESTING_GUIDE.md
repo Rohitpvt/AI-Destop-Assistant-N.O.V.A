@@ -101,26 +101,76 @@ You can customize settings (Name, Log Level, Paths) in `.env` or directly in `NO
 
 ## 6. Voice Command & Microphone Diagnostics
 
-If you are testing speech recognition or always-listening wake mode, utilize the following steps:
+If you are testing speech recognition or always-listening wake mode, utilize the following steps to ensure perfect operation across Python versions:
 
-### Diagnostic CLI Commands
+### 📋 Recommended Python Version & Setup
+- **Python 3.11 / 3.12 (Easiest)**: Precompiled PyAudio binary wheels are readily available. Run `pip install pyaudio`.
+- **Python 3.14+ (Requires Workaround)**: Precompiled wheels are not uploaded to PyPI yet. Install `PyAudioWPatch` (community fork) and shim it locally:
+  ```powershell
+  pip install PyAudioWPatch
+  ```
+  Create a folder `pyaudio` under `venv\Lib\site-packages\pyaudio\` and create an `__init__.py` in it with:
+  ```python
+  from pyaudiowpatch import *
+  from pyaudiowpatch import __version__
+  ```
+  This shims `import pyaudio` successfully for speech libraries without committing any local env files!
+
+---
+
+### 🎙️ Diagnostic CLI Commands
 Start NOVA in test mode:
 ```powershell
 python NOVA/nova.py --test
 ```
 1.  **Option `[31] List available microphones`**:
-    - Queries the local host API for all input audio devices.
+    - Queries the local host API for all physical/virtual input audio devices.
     - Displays their PyAudio device indexes and names.
 2.  **Option `[32] Test selected microphone with longer timeout`**:
     - Lets you choose a custom microphone index.
-    - Calibrates background noise.
-    - Listens for a phrase with a configurable timeout (e.g. 15s) and prints a structured JSON response of the result (e.g. Success vs. Timeout vs. Unrecognizable).
+    - Calibrates background noise dynamically.
+    - Listens for a phrase with a configurable timeout (e.g. 15s) and prints a structured response.
 3.  **Option `[28] Test voice recognition once`**:
-    - Listens for a standard phrase with the default 8s timeout.
+    - Listens for a standard phrase with the default 8s timeout and prints success/error metrics.
+4.  **Option `[29] Test voice output (TTS)`**:
+    - Plays a test spoken audio signal to verify standard text-to-speech engine outputs.
 
-### Adjusting Sensitivity in `.env`
+---
+
+### ⚙️ Adjusting Sensitivity in `.env`
 If you notice that speech detection is timing out or is too sensitive:
-- **`NOVA_MIC_DEVICE_INDEX`**: Set to the physical device index from Option 31 (leave blank for system default).
-- **`NOVA_MIC_ENERGY_THRESHOLD`**: Increase to `500` or `1000` if you are in a noisy room to prevent background noise from keeping the microphone active indefinitely.
-- **`NOVA_MIC_LISTEN_TIMEOUT_SECONDS`**: Increase to `15` to give yourself more time to speak.
+```env
+# Specific physical device index from Option 31 (leave empty for Windows Sound Mapper)
+NOVA_MIC_DEVICE_INDEX=
+# Speech energy trigger threshold (Default: 300, increase to 500-1000 in noisy rooms)
+NOVA_MIC_ENERGY_THRESHOLD=300
+# Automatic background noise adaptation (true/false)
+NOVA_MIC_DYNAMIC_ENERGY_THRESHOLD=true
+# Pause duration threshold after speech completes (Default: 0.8 seconds)
+NOVA_MIC_PAUSE_THRESHOLD=0.8
+# Max seconds to wait for starting speech (Default: 8)
+NOVA_MIC_LISTEN_TIMEOUT_SECONDS=8
+# Max duration allowed for a single spoken phrase (Default: 12)
+NOVA_MIC_PHRASE_TIME_LIMIT_SECONDS=12
+# Background noise calibration time (Default: 1.0)
+NOVA_MIC_AMBIENT_NOISE_DURATION=1.0
+```
+
+---
+
+### 🔒 Windows Microphone Permission Checklist
+- **Microphone Access**: Settings → Privacy & security → Microphone → Ensure *Microphone access* and *Let desktop apps access your microphone* are set to **On**.
+- **System Sound Input**: Settings → System → Sound → Input → Verify that your physical microphone is selected as the default input device, and that the volume meter moves when you speak.
+- **Resource Locking**: Close other audio-intensive applications (Discord, Teams, Zoom, screen recorders) that may be holding exclusive locks.
+- **Restart requirement**: Restart the terminal or PyQt5 GUI app after modifying system sound configurations.
+
+---
+
+### 🔍 Advanced Voice Troubleshooting Table
+
+| Problem | Possible Causes | Fix |
+| :--- | :--- | :--- |
+| **"Microphone is unavailable. Check Windows input settings."** | 1. PyAudio dependency missing.<br>2. Incorrect Python version (3.14+ lacks PyAudio wheel).<br>3. Windows microphone privacy setting blocked.<br>4. Packaged standalone EXE missing bundled audio binaries. | 1. Run Option `[31]` to check for errors.<br>2. Install `pyaudio` (on 3.11/3.12) or install `PyAudioWPatch` and shim it locally (on 3.14+).<br>3. Enable microphone privacy permissions for desktop apps.<br>4. Recompile with `python build_nova.py` (which includes explicit `--hidden-import pyaudiowpatch` support). |
+| **"I did not hear anything. Please speak closer." (Repeated Silences)** | 1. Microphone volume set too soft.<br>2. Wrong active microphone selected.<br>3. Listening timeout too short.<br>4. Adapting to noisy background room calibration. | 1. Run Option `[32]` with index `0` or custom mic index to test live capture.<br>2. Set `NOVA_MIC_DEVICE_INDEX` in `.env` to pin a specific active device.<br>3. Increase `NOVA_MIC_LISTEN_TIMEOUT_SECONDS` to `15` in `.env`.<br>4. Increase `NOVA_MIC_ENERGY_THRESHOLD` to prevent background noise from freezing the detector. |
+
 

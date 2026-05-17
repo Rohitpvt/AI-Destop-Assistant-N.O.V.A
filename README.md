@@ -96,12 +96,73 @@ NOVA_MIC_PHRASE_TIME_LIMIT_SECONDS=12
 NOVA_MIC_AMBIENT_NOISE_DURATION=1.0
 ```
 
-### 4. PyAudio Troubleshooting
-If Option `[31]` reports that PyAudio is missing, install it manually:
-- **Windows**: Use `pip install pyaudio`. If you face compilation errors, install the precompiled binary wheel using:
-  ```powershell
-  pip install pipwin
-  pipwin install pyaudio
-  ```
-  *(Or download the compatible `.whl` file matching your Python version from official mirrors and install it via `pip install <filename>.whl`).*
+### 4. PyAudio & Python Version Compatibility Setup
+
+Choosing the correct Python version and setup flow guarantees smooth voice commands without compilation headaches:
+
+#### 📋 Recommended Python Versions
+*   **Python 3.11 or 3.12 (Recommended / Easiest)**: Pre-compiled official binary wheels for PyAudio are readily available on PyPI. Setup is as simple as `pip install pyaudio`.
+*   **Python 3.14+ (Requires Workaround)**: Official wheels are not yet available on PyPI for newer pre-releases/releases. Standard `pip install pyaudio` will attempt to compile from source and fail on Windows unless full C++ Visual Studio Build Tools are installed. Use the **PyAudioWPatch workaround** detailed below.
+
+---
+
+#### 🟢 Standard Setup (Python 3.11 / 3.12)
+If you are running a supported Python version, execute:
+```powershell
+pip install pyaudio
+```
+If you encounter errors, try installing via `pipwin` to automatically fetch pre-compiled binaries:
+```powershell
+pip install pipwin
+pipwin install pyaudio
+```
+Verify the installation by running:
+```powershell
+python -c "import pyaudio; print('PyAudio OK')"
+python -c "import speech_recognition as sr; print(sr.Microphone.list_microphone_names())"
+```
+
+---
+
+#### 🟡 Advanced Python 3.14+ Workaround (PyAudioWPatch)
+If you are on Python 3.14+ and standard installation fails, you can leverage `PyAudioWPatch` (a compiled community fork containing WASAPI loopback support and Python 3.14 wheels):
+
+1.  **Install the library**:
+    ```powershell
+    pip install PyAudioWPatch
+    ```
+2.  **Verify the base import**:
+    ```powershell
+    python -c "import pyaudiowpatch; print('PyAudioWPatch OK')"
+    ```
+3.  **Create local compatibility shim**:
+    Because the `speech_recognition` library strictly expects `import pyaudio`, you must create a local redirect package in your active virtual environment.
+    *   Create a folder named `pyaudio` inside `venv\Lib\site-packages\pyaudio\`
+    *   Create an `__init__.py` file in that folder containing:
+        ```python
+        from pyaudiowpatch import *
+        from pyaudiowpatch import __version__
+        ```
+    *   *Warning: This compatibility shim is local to your environment. Do not commit virtual environment files (`venv/`) or site-packages folders to version control.*
+4.  **Confirm the shim redirect works**:
+    ```powershell
+    python -c "import pyaudio; print('Shim Import OK:', pyaudio.__file__)"
+    ```
+
+---
+
+### 5. Windows Microphone Permissions Checklist
+If NOVA reports that the microphone is unavailable, check the following manual settings:
+1.  **Microphone Privacy Access**:
+    - Go to **Windows Settings** → **Privacy & security** → **Microphone**.
+    - Ensure **Microphone access** is turned **On**.
+    - Ensure **Let desktop apps access your microphone** is turned **On** (this allows Python and compiled EXEs to listen).
+2.  **Active Device & Level Verification**:
+    - Go to **Windows Settings** → **System** → **Sound** → **Input**.
+    - Verify that your physical microphone is selected as the default input device.
+    - Check the **Input volume meter** to see if it moves when you speak.
+3.  **Device Conflicts**:
+    - Close other audio-intensive applications (Discord, Teams, Zoom, screen recorders) that may be holding exclusive WASAPI/MME locks on your microphone.
+    - Restart your terminal or PyQt5 GUI after altering Windows sound configurations.
+
 
