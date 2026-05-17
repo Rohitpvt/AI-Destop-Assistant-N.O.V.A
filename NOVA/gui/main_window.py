@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import config
 from gui.styles import DARK_STYLE
-from gui.worker import CommandWorker, VoiceWorker, WakeWorker, confirmation_bridge
+from gui.worker import CommandWorker, VoiceWorker, WakeWorker, ContinuousVoiceWorker, confirmation_bridge
 from core.safety import register_gui_confirmation_callback
 from memory import memory_db
 
@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
         self.update_previews()
         
         self.wake_worker = None
+        self.continuous_voice_worker = None
 
     def init_ui(self):
         central_widget = QWidget()
@@ -205,17 +206,39 @@ class MainWindow(QMainWindow):
         self.voice_worker.start()
 
     def toggle_wake_mode(self):
-        if self.wake_worker and self.wake_worker.isRunning():
-            self.wake_worker.stop()
+        if self.continuous_voice_worker and self.continuous_voice_worker.isRunning():
+            self.continuous_voice_worker.stop()
+            self.continuous_voice_worker.wait()
             self.wake_btn.setText("Start Wake Mode")
             self.update_status("Idle")
         else:
-            self.wake_worker = WakeWorker()
-            self.wake_worker.status_update.connect(self.update_status)
-            self.wake_worker.command_detected.connect(self.submit_command)
-            self.wake_worker.error_occurred.connect(self.handle_error)
-            self.wake_worker.start()
+            if self.continuous_voice_worker is not None and self.continuous_voice_worker.isRunning():
+                return
+
+            self.continuous_voice_worker = ContinuousVoiceWorker()
+            self.continuous_voice_worker.status.connect(self.update_status)
+            self.continuous_voice_worker.recognized.connect(self.on_continuous_recognized)
+            self.continuous_voice_worker.response.connect(self.on_continuous_response)
+            self.continuous_voice_worker.log.connect(self.log_message)
+            self.continuous_voice_worker.error.connect(self.handle_error)
+            self.continuous_voice_worker.start()
             self.wake_btn.setText("Stop Wake Mode")
+
+    @pyqtSlot(str)
+    def on_continuous_recognized(self, query):
+        self.append_chat("You", query)
+
+    @pyqtSlot(str, str)
+    def on_continuous_response(self, query, response):
+        self.append_chat("NOVA", response)
+        self.update_previews()
+
+    @pyqtSlot(str)
+    def log_message(self, message):
+        import logging
+        logging.info(message)
+        self.update_previews()
+
 
     @pyqtSlot(str)
     def update_status(self, status):
@@ -326,3 +349,13 @@ class MainWindow(QMainWindow):
         
         result = msg_box.exec_()
         confirmation_bridge.result = (result == QMessageBox.Yes)
+
+    def closeEvent(self, event):
+        if hasattr(self, 'continuous_voice_worker') and self.continuous_voice_worker and self.continuous_voice_worker.isRunning():
+            self.continuous_voice_worker.stop()
+            self.continuous_voice_worker.wait()
+        if hasattr(self, 'voice_worker') and self.voice_worker and self.voice_worker.isRunning():
+            self.voice_worker.wait()
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.worker.wait()
+        event.accept()

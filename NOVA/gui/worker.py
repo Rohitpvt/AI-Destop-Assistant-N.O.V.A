@@ -141,3 +141,91 @@ class WakeWorker(QThread):
 
     def stop(self):
         self.running = False
+
+class ContinuousVoiceWorker(QThread):
+    """Background worker to continuously listen to the microphone for commands."""
+    status = pyqtSignal(str)   # status updates
+    recognized = pyqtSignal(str)  # recognized text
+    response = pyqtSignal(str, str) # query, response
+    log = pyqtSignal(str)      # live logs
+    error = pyqtSignal(str)    # errors
+
+    def __init__(self):
+        super().__init__()
+        self.running = True
+
+    def run(self):
+        try:
+            from core.speech import listen_once
+            from core.tts import speech_suppressed, speak_response
+            from core.router import handle_command, get_last_response
+            
+            self.status.emit("Listening...")
+            self.log.emit("Continuous always-listening mode started.")
+            
+            while self.running:
+                try:
+                    # Listen with 5 second timeout and 10 second phrase limit
+                    result = listen_once(timeout=5, phrase_time_limit=10)
+                    if not self.running:
+                        break
+                        
+                    if not result["success"]:
+                        # Simply log the silence or timeout to Live Logs, don't show on main chat
+                        self.log.emit(f"Microphone status: {result.get('message', 'Timeout')}")
+                        continue
+                        
+                    query = result["text"].strip()
+                    if not query:
+                        continue
+                        
+                    # Preprocess command to strip wake word if present
+                    query_clean = query
+                    for w in ["hey nova", "wake up nova", "nova"]:
+                        if query_clean.lower().startswith(w):
+                            query_clean = query_clean[len(w):].strip()
+                            break
+                            
+                    if not query_clean:
+                        continue
+                        
+                    # Emit recognized query
+                    self.recognized.emit(query)
+                    self.status.emit("Thinking...")
+                    self.log.emit(f"Recognized speech: [{query}]")
+                    
+                    # Execute command in suppressed speech context to avoid double-speaking
+                    with speech_suppressed():
+                        success = handle_command(query_clean, test_mode_active=False)
+                        
+                    # Fetch response from cache
+                    resp_result = get_last_response()
+                    resp = resp_result.get("response", "")
+                    
+                    # Emit query and response to update chat history
+                    self.response.emit(query, resp)
+                    self.log.emit(f"Command executed. Success: {success}")
+                    
+                    # Speak response aloud exactly once
+                    if resp:
+                        speak_response(resp)
+                        
+                    # Resume listening
+                    self.status.emit("Listening...")
+                    
+                except Exception as inner_ex:
+                    self.log.emit(f"Error in continuous listening loop iteration: {inner_ex}")
+                    self.status.emit("Listening...")
+                    
+                import time
+                time.sleep(0.5)
+                
+            self.status.emit("Idle")
+            self.log.emit("Continuous always-listening mode stopped.")
+            
+        except Exception as e:
+            self.error.emit(f"Fatal error in voice thread: {e}")
+            
+    def stop(self):
+        self.running = False
+

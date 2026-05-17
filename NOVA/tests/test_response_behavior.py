@@ -201,5 +201,101 @@ class TestResponseBehavior(unittest.TestCase):
         args, kwargs = mock_speak_response.call_args
         self.assertTrue(args[0].startswith("The current time is "))
 
+    @patch('core.speech.listen_once')
+    @patch('core.router.handle_command')
+    @patch('core.tts.speak_response')
+    def test_continuous_voice_worker_flow(self, mock_speak_response, mock_handle_command, mock_listen_once):
+        """13. Verify ContinuousVoiceWorker flow executes command, emits signals and calls speak_response."""
+        from gui.worker import ContinuousVoiceWorker
+        
+        # Setup mock behavior
+        mock_listen_once.side_effect = [
+            {"success": True, "text": "nova what is the time", "error_type": None, "message": "Success"},
+            {"success": False, "error_type": "timeout", "message": "Silence"} # exits/loop continues
+        ]
+        mock_handle_command.return_value = True
+        
+        worker = ContinuousVoiceWorker()
+        
+        # Connect signals
+        emitted_recognized = []
+        emitted_response = []
+        
+        worker.recognized.connect(emitted_recognized.append)
+        worker.response.connect(lambda q, r: emitted_response.append((q, r)))
+        
+        # Run worker loop safely for a brief moment, then stop
+        def stop_worker():
+            worker.stop()
+            
+        # Stop worker after first iteration
+        worker.recognized.connect(lambda _: stop_worker())
+        
+        worker.run()
+        
+        self.assertIn("nova what is the time", emitted_recognized)
+        mock_handle_command.assert_called_once_with("what is the time", test_mode_active=False)
+        mock_speak_response.assert_called_once()
+
+    @patch('core.speech.listen_once')
+    @patch('core.router.handle_command')
+    def test_continuous_voice_worker_timeout_does_not_crash(self, mock_handle_command, mock_listen_once):
+        """14. Verify ContinuousVoiceWorker logs timeouts and continues looping without crashing."""
+        from gui.worker import ContinuousVoiceWorker
+        
+        # First iteration: timeout. Second iteration: success. Then stop.
+        mock_listen_once.side_effect = [
+            {"success": False, "error_type": "timeout", "message": "Silence"},
+            {"success": True, "text": "what is the date today", "error_type": None, "message": "Success"}
+        ]
+        
+        worker = ContinuousVoiceWorker()
+        worker.recognized.connect(lambda _: worker.stop())
+        
+        worker.run()
+        
+        # Verify handle_command was called for the second success item
+        mock_handle_command.assert_called_once()
+
+    def test_continuous_voice_worker_respects_stop(self):
+        """15. Verify calling .stop() successfully terminates the run loop."""
+        from gui.worker import ContinuousVoiceWorker
+        worker = ContinuousVoiceWorker()
+        self.assertTrue(worker.running)
+        worker.stop()
+        self.assertFalse(worker.running)
+
+    @patch('gui.main_window.ContinuousVoiceWorker')
+    def test_gui_toggle_wake_mode_toggles_correctly(self, mock_worker_class):
+        """16. Verify MainWindow toggle_wake_mode sets button state and spawns exactly one worker thread."""
+        from gui.main_window import MainWindow
+        from PyQt5.QtWidgets import QApplication
+        
+        # Standard QApplication singleton wrapper for GUI component instantiations in testing
+        app = QApplication.instance()
+        if not app:
+            app = QApplication(sys.argv)
+            
+        win = MainWindow()
+        mock_worker = MagicMock()
+        mock_worker.isRunning.return_value = False
+        mock_worker_class.return_value = mock_worker
+        
+        # Verify initial button text
+        self.assertEqual(win.wake_btn.text(), "Start Wake Mode")
+        self.assertIsNone(win.continuous_voice_worker)
+        
+        # Toggle start
+        win.toggle_wake_mode()
+        self.assertEqual(win.wake_btn.text(), "Stop Wake Mode")
+        mock_worker.start.assert_called_once()
+        self.assertIsNotNone(win.continuous_voice_worker)
+        
+        # Toggle stop
+        mock_worker.isRunning.return_value = True
+        win.toggle_wake_mode()
+        self.assertEqual(win.wake_btn.text(), "Start Wake Mode")
+        mock_worker.stop.assert_called_once()
+
 if __name__ == "__main__":
     unittest.main()
