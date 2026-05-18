@@ -59,6 +59,66 @@ def check_deterministic_keywords(query, test_mode_active, takecommand_func):
     """Checks for deterministic commands. Returns (matched, should_continue)."""
     q = query.lower().strip()
     
+    # Check for approval/cancel confirmation first
+    if q in ["confirm", "yes", "do it", "continue"]:
+        from core import session_context
+        if session_context.has_pending_approval():
+            return True, execute_intent("approval_confirm", None, query, test_mode_active, takecommand_func)
+            
+    if q in ["cancel", "no", "stop"]:
+        from core import session_context
+        if session_context.has_pending_approval():
+            return True, execute_intent("approval_cancel", None, query, test_mode_active, takecommand_func)
+
+    # Contextual targets pronoun matching
+    if q == "click it" or q == "open that" or q == "play it":
+        from core import session_context
+        last_target = session_context.get_context()["last_target"]
+        t = last_target if last_target else "it"
+        if q == "play it":
+            return True, execute_intent("automation_play_first", None, query, test_mode_active, takecommand_func)
+        else:
+            return True, execute_intent("automation_click_target", t, query, test_mode_active, takecommand_func)
+
+    if q.startswith("click "):
+        target_name = query[6:].strip()
+        return True, execute_intent("automation_click_target", target_name, query, test_mode_active, takecommand_func)
+
+    if q.startswith("type "):
+        text_to_type = query[5:].strip()
+        return True, execute_intent("automation_type", text_to_type, query, test_mode_active, takecommand_func)
+
+    if q == "press enter" or q == "enter":
+        return True, execute_intent("automation_press_key", "enter", query, test_mode_active, takecommand_func)
+
+    if q == "go back" or q == "back":
+        return True, execute_intent("automation_hotkey", ["alt", "left"], query, test_mode_active, takecommand_func)
+
+    if q == "close tab":
+        return True, execute_intent("automation_hotkey", ["ctrl", "w"], query, test_mode_active, takecommand_func)
+
+    if q == "pause" or q == "play":
+        return True, execute_intent("automation_press_key", "space", query, test_mode_active, takecommand_func)
+
+    if q == "play first video":
+        return True, execute_intent("automation_play_first", None, query, test_mode_active, takecommand_func)
+
+    if q.startswith("search for "):
+        search_query = query[11:].strip()
+        from core import session_context
+        ctx = session_context.get_context()
+        is_youtube = "youtube" in ctx["active_website"].lower() or "youtube" in ctx["active_window_title"].lower()
+        intent_name = "youtube_search" if is_youtube else "google_search"
+        return True, execute_intent(intent_name, search_query, query, test_mode_active, takecommand_func)
+
+    if q.startswith("search "):
+        search_query = query[7:].strip()
+        from core import session_context
+        ctx = session_context.get_context()
+        is_youtube = "youtube" in ctx["active_website"].lower() or "youtube" in ctx["active_window_title"].lower()
+        intent_name = "youtube_search" if is_youtube else "google_search"
+        return True, execute_intent(intent_name, search_query, query, test_mode_active, takecommand_func)
+    
     # Check for skill keywords first
     if "summarize my screen and save it" in q or "read this screen and make a note" in q or "save screen summary" in q:
         return True, execute_intent("skill_summarize_screen_to_note", None, query, test_mode_active, takecommand_func)
@@ -158,6 +218,31 @@ def handle_command(query, test_mode_active=False, takecommand_func=None) -> bool
     global LAST_RESPONSE_TEXT, LAST_INTENT, LAST_SUCCESS, LAST_LOG_MESSAGE
     if not query:
         return True
+
+    # Dynamically update session context
+    try:
+        from core import session_context, desktop_controller
+        active_title = desktop_controller.get_active_window_title()
+        active_app = ""
+        if active_title:
+            active_app = active_title.split("-")[-1].strip()
+        
+        active_website = ""
+        for browser_name in ["Chrome", "Firefox", "Edge", "Brave"]:
+            if browser_name in active_title:
+                if "YouTube" in active_title:
+                    active_website = "YouTube"
+                elif "Google" in active_title:
+                    active_website = "Google"
+                break
+        
+        session_context.update_context(
+            active_window_title=active_title,
+            active_app=active_app,
+            active_website=active_website
+        )
+    except Exception as ctx_update_err:
+        logging.warning(f"Failed to dynamically update session context: {ctx_update_err}")
 
     # Step 1: Check for deterministic commands first (fast path)
     matched_deterministic, should_continue = check_deterministic_keywords(query, test_mode_active, takecommand_func)
@@ -351,13 +436,20 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
                 response_text = f"Copy failed: {res.get('error')}"
                 success = False
         elif intent == "automation_hotkey":
-            key_map = {"ctrl c": ["ctrl", "c"], "ctrl v": ["ctrl", "v"], "ctrl a": ["ctrl", "a"], "ctrl s": ["ctrl", "s"], "alt tab": ["alt", "tab"], "escape": ["esc"], "enter": ["enter"]}
-            target_key = target.lower() if target else ""
-            keys = key_map.get(target_key)
+            from core import desktop_controller as core_dc
+            keys = []
+            if isinstance(target, list):
+                keys = target
+            else:
+                key_map = {"ctrl c": ["ctrl", "c"], "ctrl v": ["ctrl", "v"], "ctrl a": ["ctrl", "a"], "ctrl s": ["ctrl", "s"], "alt tab": ["alt", "tab"], "escape": ["esc"], "enter": ["enter"]}
+                target_key = str(target).lower().strip()
+                keys = key_map.get(target_key, [])
             if keys:
-                res = desktop_controller.press_hotkey(keys, test_mode_active, takecommand_func)
-                response_text = f"Pressed hotkey: {keys}" if res["success"] else f"Hotkey failed: {res.get('error')}"
-                success = res["success"]
+                res = core_dc.hotkey(*keys)
+                if res.get("approval_pending"):
+                    response_text = res["prompt"]
+                else:
+                    response_text = f"Pressed hotkey: {'+'.join(keys)}"
             else:
                 response_text = f"Unsupported hotkey: {target}"
                 success = False
@@ -365,10 +457,91 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
             res = desktop_controller.move_mouse_relative(50, 0, test_mode_active, takecommand_func)
             response_text = "Moved mouse." if res["success"] else "Mouse move failed."
             success = res["success"]
-        elif intent == "automation_click":
-            res = desktop_controller.click_current_position(test_mode_active, takecommand_func)
-            response_text = "Clicked mouse." if res["success"] else "Click failed."
-            success = res["success"]
+        elif intent == "approval_confirm":
+            from core import approval
+            res = approval.execute_pending_action()
+            if res["success"]:
+                response_text = res["message"]
+            else:
+                response_text = f"Action execution failed: {res.get('error')}"
+                success = False
+        elif intent == "approval_cancel":
+            from core import approval
+            response_text = approval.cancel_pending_action()
+        elif intent == "automation_click_target":
+            from core import session_context, desktop_controller as core_dc
+            
+            target_name = target
+            if target_name in ["it", "that"]:
+                last_target = session_context.get_context()["last_target"]
+                target_name = last_target if last_target else "button"
+            
+            resolved = core_dc.resolve_visible_target(target_name)
+            if isinstance(resolved, dict):
+                x = resolved["center_x"]
+                y = resolved["center_y"]
+                res = core_dc.click_at(x, y, target=target_name)
+                if res.get("approval_pending"):
+                    response_text = res["prompt"]
+                    session_context.update_context(last_target=target_name)
+                else:
+                    response_text = f"Clicked at ({x}, {y}) successfully."
+            elif isinstance(resolved, str):
+                response_text = resolved
+                speak(resolved)
+                success = False
+            else:
+                err_msg = f"I couldn't find a matching element on my screen for '{target_name}'. Please run 'read my screen' to scan the screen."
+                response_text = err_msg
+                speak(err_msg)
+                success = False
+        elif intent == "automation_type":
+            from core import desktop_controller as core_dc
+            res = core_dc.type_text(target)
+            if res.get("approval_pending"):
+                response_text = res["prompt"]
+            else:
+                response_text = f"Typed '{target}' successfully."
+        elif intent == "automation_press_key":
+            from core import desktop_controller as core_dc
+            res = core_dc.press_key(target)
+            if res.get("approval_pending"):
+                response_text = res["prompt"]
+            else:
+                response_text = f"Pressed key '{target}' successfully."
+        elif intent == "automation_play_first":
+            from core import session_context, desktop_controller as core_dc
+            visible_items = session_context.get_context()["last_visible_items"]
+            target_item = None
+            
+            for item in visible_items:
+                text_lower = item["text"].lower()
+                if "carryminati" in text_lower or "views" in text_lower or "video" in text_lower:
+                    target_item = item
+                    break
+            
+            if not target_item and visible_items:
+                target_item = visible_items[0]
+                
+            if target_item:
+                x = target_item["center_x"]
+                y = target_item["center_y"]
+                res = core_dc.click_at(x, y, target=target_item["text"])
+                if res.get("approval_pending"):
+                    response_text = res["prompt"]
+                else:
+                    response_text = f"Clicked first video: {target_item['text']}."
+            else:
+                err_msg = "No visible elements detected on screen to play."
+                response_text = err_msg
+                speak(err_msg)
+                success = False
+        elif intent == "youtube_search":
+            search_term = target if target else query.replace("search for", "").replace("search", "").strip()
+            url = f"https://www.youtube.com/results?search_query={search_term}"
+            speak(f"Searching YouTube for {search_term}.")
+            browser.open_website(url, query)
+            response_text = f"Searching YouTube for {search_term}."
         elif intent == "general_chat":
             recent_memory = memory_db.get_recent_interactions(5)
             chat_resp = intent_classifier.generate_chat_response(query, recent_memory)
@@ -402,7 +575,19 @@ def execute_intent(intent, target, query, test_mode_active, takecommand_func) ->
 
     # Determine log message
     log_msg = f"Executed {intent}."
-    if intent == "time":
+    if intent == "approval_confirm":
+        log_msg = "Approval confirmed. Action executed."
+    elif intent == "approval_cancel":
+        log_msg = "Approval cancelled."
+    elif intent == "automation_click_target":
+        log_msg = f"Planned action: Click target '{target}'."
+    elif intent == "automation_type":
+        log_msg = f"Planned action: Type text."
+    elif intent == "automation_press_key":
+        log_msg = f"Planned action: Press key '{target}'."
+    elif intent == "automation_play_first":
+        log_msg = "Planned action: Play first video."
+    elif intent == "time":
         log_msg = "Told the time."
     elif intent == "date":
         log_msg = "Told the date."

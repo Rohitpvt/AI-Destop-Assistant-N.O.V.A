@@ -85,6 +85,41 @@ def extract_text_from_screen(image_path=None) -> dict:
         # Perform OCR
         text = pytesseract.image_to_string(img, lang=config.OCR_LANGUAGE)
         
+        # Capture visible items with bounding boxes
+        from pytesseract import Output
+        from core import session_context
+        
+        try:
+            data = pytesseract.image_to_data(img, output_type=Output.DICT, lang=config.OCR_LANGUAGE)
+            visible_items = []
+            n_boxes = len(data['text'])
+            for i in range(n_boxes):
+                item_text = data['text'][i].strip()
+                if item_text:
+                    try:
+                        conf = float(data['conf'][i])
+                    except (ValueError, TypeError):
+                        conf = 0.0
+                    
+                    if conf >= 50.0:
+                        x = int(data['left'][i])
+                        y = int(data['top'][i])
+                        w = int(data['width'][i])
+                        h = int(data['height'][i])
+                        visible_items.append({
+                            "text": item_text,
+                            "confidence": conf,
+                            "x": x,
+                            "y": y,
+                            "width": w,
+                            "height": h,
+                            "center_x": x + w // 2,
+                            "center_y": y + h // 2
+                        })
+            session_context.update_context(last_visible_items=visible_items)
+        except Exception as ocr_data_err:
+            log_info(f"Non-fatal image_to_data error: {ocr_data_err}")
+
         # Scrub sensitive data immediately
         clean_text = scrub_sensitive_text(text)
         

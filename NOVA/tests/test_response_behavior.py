@@ -408,5 +408,183 @@ class TestResponseBehavior(unittest.TestCase):
         finally:
             config.TESSERACT_CMD = old_val
 
+    def test_session_context_operations(self):
+        """23. Verify session_context update, get, and clear operations."""
+        from core import session_context
+        session_context.clear_context()
+        ctx = session_context.get_context()
+        self.assertEqual(ctx["active_app"], "")
+        
+        session_context.update_context(active_app="Notepad", control_mode="safe")
+        ctx2 = session_context.get_context()
+        self.assertEqual(ctx2["active_app"], "Notepad")
+        self.assertEqual(ctx2["control_mode"], "safe")
+        
+        session_context.clear_context()
+        ctx3 = session_context.get_context()
+        self.assertEqual(ctx3["active_app"], "")
+
+    def test_pending_approval_set_clear_expiry(self):
+        """24. Verify pending approval staging, clearing, and expiry rules."""
+        from core import session_context
+        session_context.clear_context()
+        self.assertFalse(session_context.has_pending_approval())
+        
+        action = {"action": "click", "target": "Search", "arguments": {"x": 100, "y": 200}, "expires_after_seconds": 1}
+        session_context.set_pending_approval(action)
+        self.assertTrue(session_context.has_pending_approval())
+        
+        ctx = session_context.get_context()
+        pending = ctx["pending_approval"]
+        self.assertEqual(pending["action"], "click")
+        self.assertEqual(pending["target"], "Search")
+        
+        # Test expiry
+        import time
+        time.sleep(1.1)
+        from core import approval
+        res = approval.execute_pending_action()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["error"], "Approval expired.")
+
+    @patch('core.desktop_controller.get_active_window_title')
+    @patch('core.desktop_controller.click_at')
+    def test_active_window_mismatch_blocks_stale_click(self, mock_click_at, mock_get_title):
+        """25. Verify active window mismatch blocks a stale scheduled click action."""
+        from core import session_context, approval
+        session_context.clear_context()
+        
+        mock_get_title.return_value = "Chrome"
+        action = {"action": "click", "target": "Search", "arguments": {"x": 100, "y": 200}}
+        session_context.set_pending_approval(action)
+        
+        # Change active window title
+        mock_get_title.return_value = "Word"
+        res = approval.execute_pending_action()
+        self.assertFalse(res["success"])
+        self.assertEqual(res["error"], "Active window has changed unexpectedly.")
+        mock_click_at.assert_not_called()
+
+    @patch('webbrowser.open')
+    def test_open_website_action_succeeds(self, mock_open):
+        """26. Verify low-risk website launch executes directly without approval."""
+        from core import desktop_controller
+        res = desktop_controller.open_website("google.com")
+        self.assertTrue(res["success"])
+        mock_open.assert_called_once_with("https://google.com")
+
+    def test_risky_actions_require_approval(self):
+        """27. Verify risky click/type actions require approval and do not execute silently."""
+        from core import desktop_controller, session_context
+        session_context.clear_context()
+        
+        res = desktop_controller.click_at(100, 200)
+        self.assertTrue(res.get("approval_pending"))
+        self.assertIn("I'm ready to click", res["prompt"])
+        
+        res2 = desktop_controller.type_text("hello")
+        self.assertTrue(res2.get("approval_pending"))
+        self.assertIn("ready to type 'hello'", res2["prompt"])
+
+    @patch('core.desktop_controller.get_active_window_title')
+    @patch('core.desktop_controller.pyautogui.click')
+    def test_confirm_executes_pending_action(self, mock_click, mock_get_title):
+        """28. Verify confirm command executes staged action and cancel clears it."""
+        from core import session_context, approval, router
+        session_context.clear_context()
+        
+        mock_get_title.return_value = "Mocked Window Title"
+        action = {"action": "click", "target": "Search", "arguments": {"x": 150, "y": 250}}
+        session_context.set_pending_approval(action)
+        
+        # Execute confirm
+        success = router.handle_command("confirm", test_mode_active=True)
+        self.assertTrue(success)
+        mock_click.assert_called_once_with(150, 250)
+        self.assertFalse(session_context.has_pending_approval())
+        
+        # Test cancel
+        action2 = {"action": "click", "target": "Search", "arguments": {"x": 150, "y": 250}}
+        session_context.set_pending_approval(action2)
+        success = router.handle_command("cancel", test_mode_active=True)
+        self.assertTrue(success)
+        self.assertFalse(session_context.has_pending_approval())
+
+    def test_resolve_visible_target_scenarios(self):
+        """29. Verify target coordinate resolution, partial/exact matching, and ambiguity handling."""
+        from core import session_context, desktop_controller
+        session_context.clear_context()
+        
+        # Scenario 1: Empty items
+        resolved = desktop_controller.resolve_visible_target("Search")
+        self.assertIsNone(resolved)
+        
+        # Populate visible items
+        items = [
+            {"text": "Search", "confidence": 90, "x": 10, "y": 20, "width": 50, "height": 10, "center_x": 35, "center_y": 25},
+            {"text": "Search Google", "confidence": 80, "x": 100, "y": 200, "width": 80, "height": 20, "center_x": 140, "center_y": 210},
+            {"text": "Submit Search", "confidence": 85, "x": 300, "y": 400, "width": 80, "height": 20, "center_x": 340, "center_y": 410}
+        ]
+        session_context.update_context(last_visible_items=items)
+        
+        # Scenario 2: Exact match
+        resolved2 = desktop_controller.resolve_visible_target("Search")
+        self.assertEqual(resolved2["text"], "Search")
+        self.assertEqual(resolved2["center_x"], 35)
+        
+        # Scenario 3: Partial match
+        resolved3 = desktop_controller.resolve_visible_target("Google")
+        self.assertEqual(resolved3["text"], "Search Google")
+        
+        # Scenario 4: Ambiguous matches
+        items_ambig = [
+            {"text": "Search Google", "confidence": 80, "x": 100, "y": 200, "width": 80, "height": 20, "center_x": 140, "center_y": 210},
+            {"text": "Submit Search", "confidence": 85, "x": 300, "y": 400, "width": 80, "height": 20, "center_x": 340, "center_y": 410}
+        ]
+        session_context.update_context(last_visible_items=items_ambig)
+        resolved5 = desktop_controller.resolve_visible_target("Search")
+        self.assertIsInstance(resolved5, str)
+        self.assertIn("multiple matches", resolved5)
+
+    @patch('core.desktop_controller.get_active_window_title')
+    def test_click_it_pronoun_resolution(self, mock_get_title):
+        """30. Verify click it uses last_target to resolve click action coordinates."""
+        from core import session_context, router
+        session_context.clear_context()
+        mock_get_title.return_value = "Mocked Window Title"
+        
+        items = [{"text": "Login", "confidence": 90, "x": 10, "y": 20, "width": 50, "height": 10, "center_x": 35, "center_y": 25}]
+        session_context.update_context(last_visible_items=items, last_target="Login")
+        
+        success = router.handle_command("click it", test_mode_active=True)
+        self.assertTrue(success)
+        self.assertTrue(session_context.has_pending_approval())
+        self.assertEqual(session_context.get_context()["pending_approval"]["target"], "Login")
+
+    def test_destructive_commands_blocked(self):
+        """31. Verify destructive commands are rejected and blocked by the safety gate."""
+        from core import approval
+        
+        bad_action = {
+            "action": "type",
+            "target": "",
+            "arguments": {"text": "format c: /q"}
+        }
+        self.assertFalse(approval.is_action_allowed(bad_action))
+        
+        bad_action2 = {
+            "action": "hotkey",
+            "target": "",
+            "arguments": {"keys": ["alt", "f4"]}
+        }
+        self.assertFalse(approval.is_action_allowed(bad_action2))
+        
+        bad_action3 = {
+            "action": "press_key",
+            "target": "shutdown the computer",
+            "arguments": {"key": "enter"}
+        }
+        self.assertFalse(approval.is_action_allowed(bad_action3))
+
 if __name__ == "__main__":
     unittest.main()
